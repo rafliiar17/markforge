@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['@markforge/core'],
   serverExternalPackages: ['docx', 'child_process'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
