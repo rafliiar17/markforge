@@ -275,7 +275,7 @@ export function CustomTypeModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[85vh] flex flex-col p-6 shadow-2xl">
+      <DialogContent className="max-w-2xl sm:max-w-3xl bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[85vh] flex flex-col p-6 shadow-2xl">
         <DialogHeader className="shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2 text-base font-bold text-white">

@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, FileText, Sparkles } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 export interface DocumentTypeSummary {
   id: string;
@@ -34,28 +35,45 @@ export function TemplateSwitchDialog({
   onConfirm,
   onCancel,
 }: TemplateSwitchDialogProps) {
+  const { t } = useI18n();
+
+  const title = t('switchDialog.title') || 'Ganti Tipe Dokumen';
+  const description =
+    t('switchDialog.description') ||
+    'Pilih apakah Anda ingin memuat contoh starter markdown untuk tipe baru atau mempertahankan konten teks Anda saat ini.';
+  const currentDocLabel = t('switchDialog.currentDoc') || 'Tipe Saat Ini';
+  const targetDocLabel = t('switchDialog.targetDoc') || 'Target Baru';
+  const cancelLabel = t('switchDialog.cancel') || 'Batal';
+  const keepTextLabel = t('switchDialog.keepText') || 'Pertahankan Teks Saat Ini';
+  const loadStarterLabel =
+    t('switchDialog.loadStarter', { target: targetType.name }) ||
+    `Muat Contoh ${targetType.name}`;
+  const tipText =
+    t('switchDialog.tip') ||
+    'Tips: Memilih "Muat Contoh" akan menimpa editor dengan starter template resmi tipe ini. Memilih "Pertahankan Teks" akan mempertahankan seluruh isi dokumen Anda sembari memperbarui aturan audit & styling.';
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
-      <DialogContent className="sm:max-w-lg bg-zinc-900 border-zinc-800 text-zinc-100 shadow-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-xl sm:max-w-2xl bg-zinc-900 border-zinc-800 text-zinc-100 shadow-2xl p-6 overflow-hidden">
+        <DialogHeader className="pr-6">
           <DialogTitle className="flex items-center gap-2 text-base font-bold text-white">
-            <Sparkles className="h-5 w-5 text-emerald-400" />
-            Ganti Tipe Dokumen
+            <Sparkles className="h-5 w-5 text-emerald-400 shrink-0" />
+            {title}
           </DialogTitle>
           <DialogDescription className="text-xs text-zinc-400">
-            Pilih apakah Anda ingin memuat contoh starter markdown untuk tipe baru atau mempertahankan konten teks Anda saat ini.
+            {description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {/* Comparison Cards: Current vs Target */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {/* Current Type Card */}
-            <div className="rounded-lg border border-zinc-800 bg-zinc-950/70 p-3 flex flex-col justify-between">
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950/70 p-3.5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <Badge variant="outline" className="text-[10px] text-zinc-400 border-zinc-700">
-                    Tipe Saat Ini
+                    {currentDocLabel}
                   </Badge>
                   <FileText className="h-3.5 w-3.5 text-zinc-400" />
                 </div>
@@ -69,11 +87,11 @@ export function TemplateSwitchDialog({
             </div>
 
             {/* Target Type Card */}
-            <div className="rounded-lg border border-emerald-900/40 bg-emerald-950/20 p-3 flex flex-col justify-between">
+            <div className="rounded-lg border border-emerald-900/40 bg-emerald-950/20 p-3.5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <Badge variant="outline" className="text-[10px] text-emerald-400 border-emerald-700/60 bg-emerald-950/40">
-                    Target Baru
+                    {targetDocLabel}
                   </Badge>
                   <ArrowRight className="h-3.5 w-3.5 text-emerald-400" />
                 </div>
@@ -87,20 +105,20 @@ export function TemplateSwitchDialog({
             </div>
           </div>
 
-          <div className="rounded-md bg-zinc-950 border border-zinc-800/80 p-2.5 text-xs text-zinc-400">
-            💡 <strong>Tips:</strong> Memilih <span className="text-zinc-200 font-medium">"Muat Contoh"</span> akan menimpa editor dengan starter template resmi tipe ini. Memilih <span className="text-zinc-200 font-medium">"Pertahankan Teks"</span> akan mempertahankan seluruh isi dokumen Anda sembari memperbarui aturan audit & styling.
+          <div className="rounded-md bg-zinc-950 border border-zinc-800/80 p-2.5 text-xs text-zinc-400 leading-relaxed">
+            💡 <strong>Tips:</strong> {tipText.replace(/^Tips?:\s*/i, '')}
           </div>
         </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2 sm:justify-end">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-end gap-2.5 pt-2">
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={onCancel}
-            className="text-xs text-zinc-400 hover:text-white"
+            className="text-xs text-zinc-400 hover:text-white px-3"
           >
-            Batal
+            {cancelLabel}
           </Button>
 
           <Button
@@ -108,9 +126,9 @@ export function TemplateSwitchDialog({
             variant="secondary"
             size="sm"
             onClick={() => onConfirm(false)}
-            className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200"
+            className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3.5"
           >
-            Pertahankan Teks Saat Ini
+            {keepTextLabel}
           </Button>
 
           <Button
@@ -118,9 +136,10 @@ export function TemplateSwitchDialog({
             variant="emerald"
             size="sm"
             onClick={() => onConfirm(true)}
-            className="text-xs font-medium"
+            className="text-xs font-medium px-4 truncate max-w-full sm:max-w-sm shrink-0"
+            title={loadStarterLabel}
           >
-            {`Muat Contoh ${targetType.name}`}
+            {loadStarterLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

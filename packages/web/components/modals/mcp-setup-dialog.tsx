@@ -47,7 +47,7 @@ export function McpSetupDialog({
   };
 
   const content = (
-    <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800 text-zinc-100">
+    <DialogContent className="max-w-md sm:max-w-lg bg-zinc-900 border-zinc-800 text-zinc-100">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2 text-base font-bold text-white">
           <Cpu className="h-5 w-5 text-purple-400" />
