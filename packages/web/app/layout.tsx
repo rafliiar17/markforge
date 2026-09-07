@@ -3,9 +3,38 @@ import './globals.css';
 import { I18nProvider } from '@/lib/i18n';
 
 export const metadata: Metadata = {
-  title: 'MarkForge — Universal Markdown to PDF & DOCX Engine',
+  title: {
+    default: 'MarkForge — Universal Markdown to PDF & DOCX Studio',
+    template: '%s | MarkForge',
+  },
   description:
-    'Open-source studio for compiling Markdown to ATS-compliant resumes, technical whitepapers, and documents with PDF & DOCX export.',
+    'Universal Markdown document compiler with ATS optimization, OpenXML DOCX & print-ready PDF export, Developer CLI, and MCP Server.',
+  keywords: [
+    'markdown',
+    'pdf compiler',
+    'docx compiler',
+    'ats resume',
+    'openxml',
+    'developer tools',
+    'mcp server',
+  ],
+  authors: [{ name: 'MarkForge Contributors', url: 'https://github.com/rafliiar17/markforge' }],
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    shortcut: ['/favicon.svg'],
+    apple: [{ url: '/favicon.svg' }],
+  },
+  openGraph: {
+    title: 'MarkForge — Universal Markdown to PDF & DOCX Studio',
+    description:
+      'Universal Markdown document compiler with ATS optimization, OpenXML DOCX & print-ready PDF export.',
+    url: 'https://mark.arafz.id',
+    siteName: 'MarkForge',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
