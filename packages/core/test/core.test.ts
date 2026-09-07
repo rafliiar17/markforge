@@ -7,6 +7,12 @@ import {
   checkSystemEngines,
   getTemplate,
   BUILTIN_TEMPLATES,
+  loggerRegistry,
+  createLogger,
+  generateTraceId,
+  extractASTStats,
+  formatServerTiming,
+  templateRegistry,
 } from '../src';
 
 const SAMPLE_MD = `# Jane Doe
@@ -95,5 +101,63 @@ describe('MarkForge Core', () => {
     const engines = checkSystemEngines();
     expect(typeof engines.soffice).toBe('boolean');
     expect(typeof engines.pandoc).toBe('boolean');
+  });
+});
+
+describe('Logging, Telemetry & Registry', () => {
+  it('should support structured logging with levels and subscribers', () => {
+    let captured: any = null;
+    const unsubscribe = loggerRegistry.subscribe((record) => {
+      captured = record;
+    });
+
+    const logger = createLogger('test:logger');
+    logger.info('Test log event', { foo: 'bar' });
+
+    expect(captured).toBeDefined();
+    expect(captured.level).toBe('info');
+    expect(captured.namespace).toBe('test:logger');
+    expect(captured.context.foo).toBe('bar');
+
+    unsubscribe();
+  });
+
+  it('should generate W3C traceId and compute telemetry metrics', () => {
+    const traceId = generateTraceId();
+    expect(traceId).toHaveLength(32);
+    expect(typeof traceId).toBe('string');
+
+    const nodes = parseMarkdownToAST(SAMPLE_MD);
+    const stats = extractASTStats(nodes);
+    expect(stats.totalNodes).toBeGreaterThan(5);
+    expect(stats.headings).toBeGreaterThanOrEqual(4);
+
+    const timing = formatServerTiming({ parseTimeMs: 1.2, docxTimeMs: 35.4, totalTimeMs: 36.6 });
+    expect(timing).toContain('parse;dur=1.2');
+    expect(timing).toContain('docx;dur=35.4');
+  });
+
+  it('should support dynamic template registration', () => {
+    templateRegistry.register({
+      id: 'custom-template' as any,
+      name: 'Custom User Template',
+      description: 'Test custom template',
+      category: 'document',
+      features: ['custom'],
+      style: {
+        fontPrimary: 'Arial',
+        textColor: '000000',
+        headingColor: '000000',
+        accentColor: 'FF0000',
+        borderColor: 'CCCCCC',
+        lineHeight: 240,
+        margins: { top: 500, right: 500, bottom: 500, left: 500 },
+      },
+    });
+
+    const custom = templateRegistry.get('custom-template');
+    expect(custom).toBeDefined();
+    expect(custom.name).toBe('Custom User Template');
+    expect(templateRegistry.has('custom-template')).toBe(true);
   });
 });

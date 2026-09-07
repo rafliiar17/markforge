@@ -13,14 +13,30 @@ import {
   BUILTIN_TEMPLATES,
   getTemplate,
   TemplateId,
+  loggerRegistry,
+  generateTraceId,
+  extractASTStats,
+  parseMarkdownToAST,
+  formatServerTiming,
+  CompilationTelemetry,
 } from '../../core/src';
 
 const program = new Command();
 
 program
   .name('markforge')
-  .description('Universal Markdown to Document (PDF & DOCX) Engine with ATS Optimization')
-  .version('1.0.0');
+  .description('Universal Markdown to Document (PDF & DOCX) Engine with ATS Optimization & Observability')
+  .version('1.0.0')
+  .option('-v, --verbose', 'Enable verbose debug logging')
+  .option('-q, --quiet', 'Suppress all non-essential output')
+  .hook('preAction', (thisCommand) => {
+    const opts = thisCommand.opts();
+    if (opts.verbose) {
+      loggerRegistry.setLevel('debug');
+    } else if (opts.quiet) {
+      loggerRegistry.setLevel('silent');
+    }
+  });
 
 // ─── Build Command ──────────────────────────────────────────────────────────
 program
@@ -32,6 +48,8 @@ program
   .option('-o, --outdir <dir>', 'Output directory (default: same as input or ./output)', '')
   .option('-w, --watch', 'Watch input file for real-time rebuilds', false)
   .option('--open', 'Open generated document after building', false)
+  .option('--json', 'Output results as machine-readable JSON with telemetry', false)
+  .option('--telemetry', 'Print detailed execution timing waterfall and metrics', false)
   .action(async (filePath: string, options) => {
     const resolvedPath = path.resolve(process.cwd(), filePath);
     if (!fs.existsSync(resolvedPath)) {
@@ -40,7 +58,8 @@ program
     }
 
     const runBuild = async () => {
-      const startTime = Date.now();
+      const traceId = generateTraceId();
+      const startTime = performance.now();
       const baseName = path.basename(resolvedPath, path.extname(resolvedPath));
       const targetDir = options.outdir
         ? path.resolve(process.cwd(), options.outdir)
@@ -50,67 +69,151 @@ program
         fs.mkdirSync(targetDir, { recursive: true });
       }
 
-      console.log(pc.cyan(`\n⚡ MarkForge: Building "${pc.bold(baseName)}" using [${options.template}] template...`));
+      if (!options.json && !program.opts().quiet) {
+        console.log(pc.cyan(`\n⚡ MarkForge: Building "${pc.bold(baseName)}" using [${options.template}] template...`));
+        console.log(pc.dim(`   Trace ID: ${traceId}`));
+      }
+
       const markdown = fs.readFileSync(resolvedPath, 'utf8');
       const format = options.format.toLowerCase();
 
-      let generatedFiles: string[] = [];
+      // Measure parse phase
+      const parseStart = performance.now();
+      const ast = parseMarkdownToAST(markdown);
+      const parseTimeMs = performance.now() - parseStart;
+      const astStats = extractASTStats(ast);
+
+      const telemetry: CompilationTelemetry = {
+        traceId,
+        timestamp: new Date().toISOString(),
+        documentTitle: baseName,
+        templateId: options.template,
+        format: options.format,
+        metrics: {
+          parseTimeMs,
+          totalTimeMs: 0,
+        },
+        astStats,
+        outputSizeBytes: 0,
+        serverTimingHeader: '',
+      };
+
+      let generatedFiles: { format: string; path: string; sizeBytes: number; engine?: string }[] = [];
 
       // 1. DOCX
       if (['docx', 'both', 'all'].includes(format)) {
         try {
+          const docxStart = performance.now();
           const docxBuffer = await compileMarkdownToDocx(markdown, {
             template: options.template,
             title: baseName,
           });
+          const docxTimeMs = performance.now() - docxStart;
+          telemetry.metrics.docxTimeMs = docxTimeMs;
+
           const outDocx = path.join(targetDir, `${baseName}.docx`);
           fs.writeFileSync(outDocx, docxBuffer);
-          const sizeKb = (docxBuffer.length / 1024).toFixed(1);
-          console.log(`   ${pc.green('✔ DOCX')} → ${pc.dim(outDocx)} (${sizeKb} KB)`);
-          generatedFiles.push(outDocx);
+          telemetry.outputSizeBytes += docxBuffer.length;
+
+          generatedFiles.push({ format: 'docx', path: outDocx, sizeBytes: docxBuffer.length });
+          if (!options.json && !program.opts().quiet) {
+            const sizeKb = (docxBuffer.length / 1024).toFixed(1);
+            console.log(`   ${pc.green('✔ DOCX')} → ${pc.dim(outDocx)} (${sizeKb} KB, ${docxTimeMs.toFixed(0)}ms)`);
+          }
         } catch (err: any) {
-          console.error(`   ${pc.red('✖ DOCX failed:')} ${err.message}`);
+          if (!options.json) console.error(`   ${pc.red('✖ DOCX failed:')} ${err.message}`);
         }
       }
 
       // 2. PDF
       if (['pdf', 'both', 'all'].includes(format)) {
         try {
+          const pdfStart = performance.now();
           const pdfResult = await compileMarkdownToPdf(markdown, {
             template: options.template,
             title: baseName,
           });
+          const pdfTimeMs = performance.now() - pdfStart;
+          telemetry.metrics.pdfTimeMs = pdfTimeMs;
+          telemetry.engine = {
+            primaryEngine: 'soffice',
+            actualEngineUsed: pdfResult.engineUsed,
+            fallbackOccurred: !pdfResult.engineUsed.includes('LibreOffice'),
+            attemptedEngines: ['soffice'],
+          };
+
           const outPdf = path.join(targetDir, `${baseName}.pdf`);
           fs.writeFileSync(outPdf, pdfResult.buffer);
-          const sizeKb = (pdfResult.sizeBytes / 1024).toFixed(1);
-          console.log(`   ${pc.green('✔ PDF ')} → ${pc.dim(outPdf)} (${sizeKb} KB) [${pc.cyan(pdfResult.engineUsed)}]`);
-          generatedFiles.push(outPdf);
+          telemetry.outputSizeBytes += pdfResult.sizeBytes;
+
+          generatedFiles.push({
+            format: 'pdf',
+            path: outPdf,
+            sizeBytes: pdfResult.sizeBytes,
+            engine: pdfResult.engineUsed,
+          });
+
+          if (!options.json && !program.opts().quiet) {
+            const sizeKb = (pdfResult.sizeBytes / 1024).toFixed(1);
+            console.log(`   ${pc.green('✔ PDF ')} → ${pc.dim(outPdf)} (${sizeKb} KB, ${pdfTimeMs.toFixed(0)}ms) [${pc.cyan(pdfResult.engineUsed)}]`);
+          }
         } catch (err: any) {
-          console.error(`   ${pc.red('✖ PDF failed:')} ${err.message}`);
+          if (!options.json) console.error(`   ${pc.red('✖ PDF failed:')} ${err.message}`);
         }
       }
 
       // 3. HTML
       if (['html', 'all'].includes(format)) {
         try {
+          const htmlStart = performance.now();
           const htmlContent = compileMarkdownToHtml(markdown, {
             template: options.template,
             title: baseName,
           });
+          const htmlTimeMs = performance.now() - htmlStart;
+          telemetry.metrics.htmlTimeMs = htmlTimeMs;
+
           const outHtml = path.join(targetDir, `${baseName}.html`);
           fs.writeFileSync(outHtml, htmlContent, 'utf8');
-          console.log(`   ${pc.green('✔ HTML')} → ${pc.dim(outHtml)}`);
-          generatedFiles.push(outHtml);
+
+          generatedFiles.push({ format: 'html', path: outHtml, sizeBytes: Buffer.byteLength(htmlContent) });
+          if (!options.json && !program.opts().quiet) {
+            console.log(`   ${pc.green('✔ HTML')} → ${pc.dim(outHtml)} (${htmlTimeMs.toFixed(0)}ms)`);
+          }
         } catch (err: any) {
-          console.error(`   ${pc.red('✖ HTML failed:')} ${err.message}`);
+          if (!options.json) console.error(`   ${pc.red('✖ HTML failed:')} ${err.message}`);
         }
       }
 
-      const elapsed = Date.now() - startTime;
-      console.log(pc.dim(`✨ Done in ${elapsed}ms\n`));
+      telemetry.metrics.totalTimeMs = performance.now() - startTime;
+      telemetry.serverTimingHeader = formatServerTiming(telemetry.metrics);
+
+      // JSON output for CI / script automation
+      if (options.json) {
+        console.log(JSON.stringify({ success: true, files: generatedFiles, telemetry }, null, 2));
+        return;
+      }
+
+      if (!program.opts().quiet) {
+        console.log(pc.dim(`✨ Done in ${telemetry.metrics.totalTimeMs.toFixed(1)}ms`));
+      }
+
+      // Telemetry waterfall display
+      if (options.telemetry) {
+        console.log(pc.bold('\n📊 Compilation Observability Waterfall:'));
+        console.log(`   Parse Markdown:   ${telemetry.metrics.parseTimeMs.toFixed(1).padStart(7)} ms  [${astStats.totalNodes} AST nodes]`);
+        if (telemetry.metrics.docxTimeMs !== undefined) {
+          console.log(`   DOCX Assemble:    ${telemetry.metrics.docxTimeMs.toFixed(1).padStart(7)} ms  [OpenXML Packer]`);
+        }
+        if (telemetry.metrics.pdfTimeMs !== undefined) {
+          console.log(`   PDF Headless:     ${telemetry.metrics.pdfTimeMs.toFixed(1).padStart(7)} ms  [${telemetry.engine?.actualEngineUsed}]`);
+        }
+        console.log(`   Total Duration:   ${telemetry.metrics.totalTimeMs.toFixed(1).padStart(7)} ms`);
+        console.log(`   Server-Timing:    ${pc.dim(telemetry.serverTimingHeader)}\n`);
+      }
 
       if (options.open && generatedFiles.length > 0) {
-        const fileToOpen = generatedFiles[0];
+        const fileToOpen = generatedFiles[0].path;
         const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
         exec(`${cmd} "${fileToOpen}"`);
       }
@@ -136,7 +239,6 @@ program
   .option('-t, --template <name>', 'Template name', 'ats-classic')
   .option('-f, --format <format>', 'Target format: pdf, docx, html, both, all', 'both')
   .action((file: string, options) => {
-    // Re-dispatch to build with --watch
     program.commands
       .find((c) => c.name() === 'build')
       ?.parse(['build', file, '-t', options.template, '-f', options.format, '-w'], { from: 'user' });
@@ -147,7 +249,8 @@ program
   .command('analyze')
   .description('Audit document for ATS compatibility, action verbs, and structure')
   .argument('<file>', 'Input Markdown file')
-  .action((filePath: string) => {
+  .option('--json', 'Output audit report as JSON', false)
+  .action((filePath: string, options) => {
     const resolvedPath = path.resolve(process.cwd(), filePath);
     if (!fs.existsSync(resolvedPath)) {
       console.error(pc.red(`✖ Error: File not found: ${resolvedPath}`));
@@ -156,6 +259,11 @@ program
 
     const markdown = fs.readFileSync(resolvedPath, 'utf8');
     const report = analyzeMarkdownDocument(markdown);
+
+    if (options.json) {
+      console.log(JSON.stringify(report, null, 2));
+      return;
+    }
 
     console.log(pc.bold(pc.cyan('\n╔═════════════════════════════════════════════════════════════════════╗')));
     console.log(pc.bold(pc.cyan('║                   MARKFORGE ATS & QUALITY AUDIT                     ║')));
@@ -224,10 +332,6 @@ program
 
       let content = `# John Doe\n*Senior Software Architect*\njohn.doe@example.com | +1 (555) 019-2834 | linkedin.com/in/johndoe | San Francisco, CA\n\n## Professional Summary\nAccomplished engineer with 8+ years specializing in distributed systems and cloud infrastructure. Architected microservice platforms handling 250M+ requests/month.\n\n## Work Experience\n### Principal Engineer | Global Tech Systems\n*2022 - Present | San Francisco, CA*\n- Spearheaded transition to event-driven architecture, reducing latency by 45%.\n- Automated deployment pipelines, boosting developer velocity by 3x.\n\n### Senior Software Engineer | HyperScale Inc.\n*2019 - 2022 | Austin, TX*\n- Engineered real-time distributed telemetry collector using Go and Kafka.\n- Mentored 6 engineering interns and junior engineers.\n\n## Education\n### B.S. Computer Science | University of California, Berkeley\n*2015 - 2019*\n\n## Technical Skills\n- **Languages:** TypeScript, Go, Rust, Python, SQL\n- **Infrastructure:** Kubernetes, Docker, AWS, Terraform, Cloudflare\n`;
 
-      if (id === 'tech-spec') {
-        content = `# RFC-104: Unified Document Compilation Pipeline\n*Author: Architecture Team | Status: Proposed | Date: 2026-09-07*\n\n## Executive Summary\nThis technical specification outlines the design of MarkForge's multi-target rendering engine capable of compiling markdown to DOCX, PDF, and HTML with sub-50ms latency.\n\n## Architecture Overview\n> The compilation pipeline processes markdown through an Abstract Syntax Tree (AST) transformer to emit native OpenXML (DOCX) elements.\n\n| Component | Technology | Responsibility |\n|---|---|---|\n| AST Parser | Custom Regex/State Machine | Fast tokenization of headings, lists, tables |\n| DOCX Generator | docx-js OpenXML | Native Word document assembly |\n| PDF Converter | LibreOffice / Weasyprint | Headless PDF compilation with font embedding |\n\n## Code Example\n\`\`\`typescript\nimport { compileMarkdownToDocx } from '@markforge/core';\n\nconst docx = await compileMarkdownToDocx('# Hello World');\n\`\`\`\n`;
-      }
-
       fs.writeFileSync(path.resolve(process.cwd(), targetFile), content, 'utf8');
       console.log(pc.green(`✔ Scaffolded "${id}" template into: ${targetFile}`));
     }
@@ -237,8 +341,15 @@ program
 program
   .command('doctor')
   .description('Check system rendering engines and dependencies')
-  .action(() => {
+  .option('--json', 'Output diagnostics as JSON', false)
+  .action((options) => {
     const engines = checkSystemEngines();
+
+    if (options.json) {
+      console.log(JSON.stringify(engines, null, 2));
+      return;
+    }
+
     console.log(pc.bold(pc.cyan('\n🩺 MarkForge Environment Doctor:\n')));
 
     const printItem = (name: string, ok: boolean, purpose: string, hint: string) => {

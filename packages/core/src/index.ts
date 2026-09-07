@@ -5,3 +5,6 @@ export * from './docx-compiler';
 export * from './html-compiler';
 export * from './pdf-compiler';
 export * from './analyzer';
+export * from './logger';
+export * from './telemetry';
+export * from './registry';
