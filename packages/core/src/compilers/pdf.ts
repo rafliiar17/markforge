@@ -3,11 +3,10 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { CompileOptions, ConvertResult, SystemEngineCheck } from './types';
-import { compileMarkdownToDocx } from './docx-compiler';
-import { compileMarkdownToHtml } from './html-compiler';
-import { createLogger } from './logger';
-import { withSpan } from './otel';
+import { CompileOptions, ConvertResult, SystemEngineCheck } from '../types';
+import { compileMarkdownToDocx } from './docx';
+import { compileMarkdownToHtml } from './html';
+import { createLogger, withSpan } from '../observability';
 
 const execFileAsync = typeof execFile === 'function' ? promisify(execFile) : (async () => { throw new Error('child_process is not available'); }) as any;
 const logger = createLogger('markforge:pdf');

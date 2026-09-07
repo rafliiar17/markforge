@@ -3,49 +3,18 @@ import {
   DocumentAuditResult,
   DocumentAuditChecklistItem,
   ATSSectionCheck,
-} from './types';
-import { BUILTIN_DOCUMENT_TYPES } from './templates';
-import { parseMarkdownToAST } from './parser';
-
-const POWER_ACTION_VERBS = [
-  'accelerated', 'achieved', 'administered', 'analyzed', 'architected',
-  'automated', 'boosted', 'built', 'centralized', 'championed',
-  'collaborated', 'consolidated', 'constructed', 'converted', 'cut',
-  'decreased', 'delivered', 'deployed', 'designed', 'developed',
-  'devised', 'doubled', 'drove', 'engineered', 'enhanced',
-  'established', 'executed', 'expanded', 'expedited', 'facilitated',
-  'formulated', 'generated', 'governed', 'guided', 'implemented',
-  'improved', 'increased', 'initiated', 'innovated', 'installed',
-  'instituted', 'integrated', 'introduced', 'invented', 'launched',
-  'lead', 'led', 'maintained', 'managed', 'maximized',
-  'mentored', 'migrated', 'minimized', 'modernized', 'negotiated',
-  'orchestrated', 'overhauled', 'oversaw', 'partnered', 'pioneered',
-  'planned', 'produced', 'programmed', 'projected', 'published',
-  'rebuilt', 'recruited', 'redesigned', 'reduced', 'refactored',
-  'remodeled', 'reorganized', 'replaced', 'resolved', 'restructured',
-  'revamped', 'revitalized', 'saved', 'scaled', 'scheduled',
-  'secured', 'simplified', 'slashed', 'solved', 'spearheaded',
-  'standardized', 'streamlined', 'strengthened', 'supervised', 'surpassed',
-  'tested', 'trained', 'transformed', 'troubleshot', 'unified',
-  'upgraded', 'validated', 'yielded'
-];
-
-const STANDARD_SECTIONS = [
-  { name: 'Summary / Profile', regex: /(summary|profile|about\s*me|objective)/i, weight: 15 },
-  { name: 'Work Experience', regex: /(experience|employment|work\s*history|career)/i, weight: 30 },
-  { name: 'Education', regex: /(education|academic|qualifications|degrees)/i, weight: 15 },
-  { name: 'Skills', regex: /(skills|competencies|technical\s*skills|tech\s*stack)/i, weight: 20 },
-  { name: 'Projects / Achievements', regex: /(projects|portfolio|achievements|certifications)/i, weight: 10 },
-];
-
-const TECH_KEYWORDS = [
-  'typescript', 'javascript', 'python', 'go', 'golang', 'rust', 'java', 'c++', 'c#',
-  'react', 'next.js', 'vue', 'angular', 'svelte', 'node', 'node.js', 'bun',
-  'docker', 'kubernetes', 'k8s', 'aws', 'gcp', 'azure', 'cloudflare',
-  'postgresql', 'postgres', 'mysql', 'redis', 'mongodb', 'clickhouse', 'sqlite', 'dynamodb',
-  'kafka', 'graphql', 'rest', 'grpc', 'tailwind', 'tailwindcss', 'openxml',
-  'webassembly', 'wasm', 'terraform', 'ci/cd', 'git', 'github actions'
-];
+} from '../types';
+import { BUILTIN_DOCUMENT_TYPES } from '../templates';
+import { parseMarkdownToAST } from '../parser';
+import {
+  POWER_ACTION_VERBS,
+  STANDARD_SECTIONS,
+  TECH_KEYWORDS,
+  ATS_RUBRIC,
+  PORTFOLIO_RUBRIC,
+  TECH_SPEC_RUBRIC,
+  CUSTOM_CHECKLIST_RUBRIC,
+} from './rubrics';
 
 export function analyzeMarkdownDocument(
   markdown: string,
@@ -123,30 +92,13 @@ export function analyzeMarkdownDocument(
   } else if (docTypeId && BUILTIN_DOCUMENT_TYPES[docTypeId]) {
     effectiveRubric = BUILTIN_DOCUMENT_TYPES[docTypeId].auditRubric;
   } else if (docTypeId === 'portfolio') {
-    effectiveRubric = {
-      type: 'portfolio',
-      label: 'Developer Portfolio & Project Showcase Audit',
-      requiredHeadings: ['Featured Projects', 'Tech Stack', 'About / Contact'],
-      detectLinks: true,
-      detectMetrics: true,
-    };
+    effectiveRubric = PORTFOLIO_RUBRIC;
   } else if (docTypeId === 'tech-spec') {
-    effectiveRubric = {
-      type: 'tech-spec',
-      label: 'Technical Spec & RFC Rigor Audit',
-      requiredHeadings: ['Architecture', 'API Design', 'Security', 'Trade-offs'],
-      detectDiagrams: true,
-    };
+    effectiveRubric = TECH_SPEC_RUBRIC;
   } else if (docTypeId === 'custom-checklist') {
-    effectiveRubric = {
-      type: 'custom-checklist',
-      label: 'Custom Document Checklist Audit',
-    };
+    effectiveRubric = CUSTOM_CHECKLIST_RUBRIC;
   } else {
-    effectiveRubric = BUILTIN_DOCUMENT_TYPES['cv']?.auditRubric || {
-      type: 'ats',
-      label: 'ATS Resume Compliance Audit',
-    };
+    effectiveRubric = BUILTIN_DOCUMENT_TYPES['cv']?.auditRubric || ATS_RUBRIC;
   }
 
   // Handle Rubrics based on type

@@ -13,11 +13,10 @@ import {
   WidthType,
   ShadingType,
 } from 'docx';
-import { CompileOptions, TemplateStyleConfig } from './types';
-import { getTemplate } from './templates';
-import { parseMarkdownToAST, parseInlineSpans, InlineSpan } from './parser';
-import { createLogger } from './logger';
-import { withSpan } from './otel';
+import { CompileOptions, TemplateStyleConfig } from '../types';
+import { getTemplate } from '../templates';
+import { parseMarkdownToAST, parseInlineSpans, InlineSpan } from '../parser';
+import { createLogger, withSpan } from '../observability';
 
 const logger = createLogger('markforge:docx');
 

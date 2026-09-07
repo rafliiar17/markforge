@@ -1,6 +1,6 @@
-import { CompileOptions, TemplateStyleConfig } from './types';
-import { getTemplate } from './templates';
-import { parseMarkdownToAST, parseInlineSpans, InlineSpan } from './parser';
+import { CompileOptions, TemplateStyleConfig } from '../types';
+import { getTemplate } from '../templates';
+import { parseMarkdownToAST, parseInlineSpans, InlineSpan } from '../parser';
 
 function spansToHtml(spans: InlineSpan[]): string {
   return spans

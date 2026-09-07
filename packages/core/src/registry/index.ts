@@ -1,6 +1,6 @@
-import { TemplateDefinition, TemplateId, CompileOptions } from './types';
-import { BUILTIN_TEMPLATES } from './templates';
-import { createLogger } from './logger';
+import { TemplateDefinition, TemplateId, CompileOptions } from '../types';
+import { BUILTIN_TEMPLATES } from '../templates';
+import { createLogger } from '../observability';
 
 const logger = createLogger('markforge:registry');
 
@@ -20,7 +20,7 @@ export interface DocumentConverterEngine {
   convert(ctx: EngineConversionContext): Promise<Buffer>;
 }
 
-class TemplateRegistry {
+export class TemplateRegistry {
   private templates: Map<string, TemplateDefinition> = new Map();
 
   constructor() {
@@ -55,7 +55,7 @@ class TemplateRegistry {
   }
 }
 
-class EngineRegistry {
+export class EngineRegistry {
   private engines: DocumentConverterEngine[] = [];
 
   register(engine: DocumentConverterEngine): void {

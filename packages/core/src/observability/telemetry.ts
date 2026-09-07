@@ -1,4 +1,4 @@
-import { ATSReport, ASTNode } from './types';
+import { ATSReport, ASTNode } from '../types';
 
 export interface CompilationMetrics {
   parseTimeMs: number;

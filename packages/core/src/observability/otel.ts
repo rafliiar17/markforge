@@ -1,6 +1,5 @@
 import {
   trace,
-  context,
   Span,
   SpanStatusCode,
   Tracer,
@@ -13,6 +12,8 @@ const TRACER_VERSION = '1.0.0';
 export function getTracer(): Tracer {
   return trace.getTracer(TRACER_NAME, TRACER_VERSION);
 }
+
+export const tracer = getTracer();
 
 export interface TraceContextInfo {
   traceId: string;
@@ -41,8 +42,8 @@ export async function withSpan<T>(
   attributes: Attributes,
   fn: (span: Span) => Promise<T> | T
 ): Promise<T> {
-  const tracer = getTracer();
-  return tracer.startActiveSpan(name, { attributes }, async (span) => {
+  const activeTracer = getTracer();
+  return activeTracer.startActiveSpan(name, { attributes }, async (span) => {
     try {
       const result = await fn(span);
       span.setStatus({ code: SpanStatusCode.OK });

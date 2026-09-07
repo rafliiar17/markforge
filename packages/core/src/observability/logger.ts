@@ -56,4 +56,6 @@ export function createLogger(namespace: string): Logger {
   return rootLogger.child({ namespace });
 }
 
+export const logger = createLogger('markforge');
+
 export { rootLogger };
