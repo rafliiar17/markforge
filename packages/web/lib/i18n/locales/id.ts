@@ -35,6 +35,9 @@ export const idTranslations: TranslationSchema = {
     addCustomType: '+ Tambah Tipe Kustom...',
     recommendedStyles: '⭐ Disarankan untuk {type}',
     allStyles: '🌐 Semua Gaya Tersedia',
+    otherStyles: '🌐 Gaya Lainnya',
+    exportPdfTooltip: 'Ekspor PDF 1:1 via Server Engine (LibreOffice / Weasyprint)',
+    printBrowserTooltip: 'Cetak langsung ke printer atau simpan sebagai PDF via Browser',
     mcpTitle: 'Pengaturan Model Context Protocol (MCP)',
     mcpDesc:
       'Hubungkan MarkForge langsung ke Claude Desktop, Cursor, atau Antigravity untuk konversi dokumen dan audit ATS lewat prompt AI.',

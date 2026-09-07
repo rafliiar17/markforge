@@ -65,6 +65,9 @@ export interface TranslationSchema {
     addCustomType: string;
     recommendedStyles: string;
     allStyles: string;
+    otherStyles?: string;
+    exportPdfTooltip?: string;
+    printBrowserTooltip?: string;
     mcpTitle: string;
     mcpDesc: string;
     mcpToolsIncluded: string;

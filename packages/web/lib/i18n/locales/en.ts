@@ -35,6 +35,9 @@ export const enTranslations: TranslationSchema = {
     addCustomType: '+ Add Custom Type...',
     recommendedStyles: '⭐ Recommended for {type}',
     allStyles: '🌐 All Available Styles',
+    otherStyles: '🌐 Other Styles',
+    exportPdfTooltip: 'Export high-fidelity 1:1 PDF via Server Engine (LibreOffice / Weasyprint)',
+    printBrowserTooltip: 'Print directly or save as PDF via Browser Print',
     mcpTitle: 'Model Context Protocol (MCP) Setup',
     mcpDesc:
       'Connect MarkForge directly into Claude Desktop, Cursor, or Antigravity to convert documents and analyze ATS scores via AI prompts.',

@@ -183,42 +183,54 @@ export function StudioHeader({
 
         {/* Tier 2: Template Style Select */}
         <div className="w-44 lg:w-52">
-          <Select value={template} onValueChange={onTemplateSelect}>
-            <SelectTrigger className="h-8 bg-zinc-950 border-zinc-700 text-xs text-zinc-200">
-              <SelectValue placeholder={t('header.templateStyle') || 'Select Style'} />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-              {recommendedTemplates.length > 0 && (
-                <SelectGroup>
-                  <SelectLabel className="text-[10px] uppercase font-bold tracking-wider text-amber-400">
-                    {t('header.recommendedStyles', { type: activeDocShortName }) ||
-                      `⭐ Recommended for ${activeDocShortName}`}
-                  </SelectLabel>
-                  {recommendedTemplates.map((tItem) => (
-                    <SelectItem
-                      key={`rec-${tItem.id}`}
-                      value={tItem.id}
-                      className="text-xs font-medium"
-                    >
-                      {tItem.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              )}
+          {(() => {
+            const otherTemplates = allTemplates.filter(
+              (tItem) => !recommendedTemplates.some((rec) => rec.id === tItem.id)
+            );
 
-              <SelectGroup>
-                {recommendedTemplates.length > 0 && <SelectSeparator className="bg-zinc-800" />}
-                <SelectLabel className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">
-                  {t('header.allStyles') || '🌐 All Available Styles'}
-                </SelectLabel>
-                {allTemplates.map((tItem) => (
-                  <SelectItem key={`all-${tItem.id}`} value={tItem.id} className="text-xs">
-                    {tItem.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+            return (
+              <Select value={template} onValueChange={onTemplateSelect}>
+                <SelectTrigger className="h-8 bg-zinc-950 border-zinc-700 text-xs text-zinc-200">
+                  <SelectValue placeholder={t('header.templateStyle') || 'Select Style'} />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                  {recommendedTemplates.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-[10px] uppercase font-bold tracking-wider text-amber-400">
+                        {t('header.recommendedStyles', { type: activeDocShortName }) ||
+                          `⭐ Recommended for ${activeDocShortName}`}
+                      </SelectLabel>
+                      {recommendedTemplates.map((tItem) => (
+                        <SelectItem
+                          key={`rec-${tItem.id}`}
+                          value={tItem.id}
+                          className="text-xs font-medium"
+                        >
+                          {tItem.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+
+                  {otherTemplates.length > 0 && (
+                    <SelectGroup>
+                      {recommendedTemplates.length > 0 && <SelectSeparator className="bg-zinc-800" />}
+                      <SelectLabel className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">
+                        {recommendedTemplates.length > 0
+                          ? t('header.otherStyles') || '🌐 Other Styles'
+                          : t('header.allStyles') || '🌐 All Available Styles'}
+                      </SelectLabel>
+                      {otherTemplates.map((tItem) => (
+                        <SelectItem key={`other-${tItem.id}`} value={tItem.id} className="text-xs">
+                          {tItem.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
+            );
+          })()}
         </div>
 
         {/* Export DOCX Button */}
@@ -242,6 +254,7 @@ export function StudioHeader({
           className="h-8 text-xs font-semibold"
           onClick={onExportPdf}
           disabled={isGeneratingPdf}
+          title={t('header.exportPdfTooltip') || 'Ekspor PDF 1:1 via Server Engine (LibreOffice / Weasyprint)'}
         >
           <Download className="mr-1.5 h-3.5 w-3.5 text-white" />
           {isGeneratingPdf

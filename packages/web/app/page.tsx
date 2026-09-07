@@ -112,7 +112,10 @@ export default function MarkForgeStudio() {
         <EditorPane
           markdown={markdown} onMarkdownChange={setMarkdown} onDrop={handleDrop}
           onOpenCheatsheet={() => setIsCheatsheetOpen(true)} onInsertMermaid={() => setMarkdown((prev) => prev + MERMAID_SNIPPET)}
-          onAnalyze={() => runAnalysis(markdown, docTypeId, activeDocType?.auditRubric)}
+          onAnalyze={() => {
+            runAnalysis(markdown, docTypeId, activeDocType?.auditRubric);
+            setActiveTab('ats');
+          }}
           isAnalyzing={isAnalyzing} docTypeId={docTypeId} activeDocType={activeDocType}
         />
         <PreviewPane
