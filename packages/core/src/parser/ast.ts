@@ -119,11 +119,11 @@ export function parseMarkdownToAST(markdown: string): ASTNode[] {
     }
 
     // Bullet items
-    const bulletMatch = /^[ \t]*[-*+][ \t]+(.*)$/.exec(rawLine);
-    if (bulletMatch) {
+    if ((trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('+ ') ||
+         trimmed.startsWith('-\t') || trimmed.startsWith('*\t') || trimmed.startsWith('+\t')) && trimmed.length > 2) {
       const indent = rawLine.length - rawLine.trimStart().length;
       const level = Math.min(Math.floor(indent / 2), 3);
-      const content = bulletMatch[1].trim();
+      const content = trimmed.slice(2).trim();
       nodes.push({
         type: 'bullet',
         text: content,
