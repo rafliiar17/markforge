@@ -9,7 +9,7 @@ import { compileMarkdownToHtml } from './html-compiler';
 import { createLogger } from './logger';
 import { withSpan } from './otel';
 
-const execFileAsync = promisify(execFile);
+const execFileAsync = typeof execFile === 'function' ? promisify(execFile) : (async () => { throw new Error('child_process is not available'); }) as any;
 const logger = createLogger('markforge:pdf');
 
 export function checkSystemEngines(): SystemEngineCheck {

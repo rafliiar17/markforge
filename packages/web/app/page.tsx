@@ -34,7 +34,20 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
+  SelectSeparator,
 } from '@/components/ui/select';
+import { TemplateSwitchDialog } from '@/components/template-switch-dialog';
+import {
+  CustomTypeModal,
+  loadCustomTypesFromStorage,
+} from '@/components/custom-type-modal';
+import {
+  BUILTIN_DOCUMENT_TYPES,
+  listDocumentTypes,
+  getDocumentType,
+  type DocumentTypeDefinition,
+  type DocumentAuditResult,
+} from '@markforge/core';
 import {
   Dialog,
   DialogContent,
@@ -102,6 +115,8 @@ const TEMPLATE_PRESETS = [
 ];
 
 export default function MarkForgeStudio() {
+  const [docTypeId, setDocTypeId] = useState<string>('cv');
+  const [customTypes, setCustomTypes] = useState<DocumentTypeDefinition[]>([]);
   const [markdown, setMarkdown] = useState<string>(DEFAULT_MARKDOWN);
   const [template, setTemplate] = useState<string>('ats-classic');
   const [activeTab, setActiveTab] = useState<string>('preview');
@@ -112,21 +127,57 @@ export default function MarkForgeStudio() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [copiedMcp, setCopiedMcp] = useState(false);
 
-  // ATS Report state
-  const [atsReport, setAtsReport] = useState<any>(null);
+  // Template switch & Custom types dialogs
+  const [isSwitchDialogOpen, setIsSwitchDialogOpen] = useState<boolean>(false);
+  const [pendingTargetTypeId, setPendingTargetTypeId] = useState<string | null>(null);
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState<boolean>(false);
+
+  // ATS / Document Audit Report state
+  const [atsReport, setAtsReport] = useState<DocumentAuditResult | any>(null);
 
   // Preview HTML & sync state
   const [previewHtml, setPreviewHtml] = useState<string>('');
   const [isUpdatingPreview, setIsUpdatingPreview] = useState<boolean>(false);
 
-  // Fetch / Compute ATS report
-  const runAnalysis = async (content: string) => {
+  // Combined Document Types
+  const allDocumentTypes: DocumentTypeDefinition[] = [
+    ...listDocumentTypes(),
+    ...customTypes,
+  ];
+
+  const activeDocType: DocumentTypeDefinition =
+    allDocumentTypes.find((d) => d.id === docTypeId) ||
+    getDocumentType(docTypeId) ||
+    BUILTIN_DOCUMENT_TYPES['cv'];
+
+  const pendingTargetType: DocumentTypeDefinition | null = pendingTargetTypeId
+    ? allDocumentTypes.find((d) => d.id === pendingTargetTypeId) ||
+      getDocumentType(pendingTargetTypeId)
+    : null;
+
+  // Recommended templates for the active document type
+  const recommendedTemplates = TEMPLATE_PRESETS.filter(
+    (t) =>
+      activeDocType?.recommendedTemplateIds?.includes(t.id) ||
+      t.id === activeDocType?.defaultTemplateId
+  );
+
+  // Fetch / Compute Document audit report
+  const runAnalysis = async (
+    content: string,
+    typeId: string = docTypeId,
+    rubric?: any
+  ) => {
     setIsAnalyzing(true);
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ markdown: content }),
+        body: JSON.stringify({
+          markdown: content,
+          docTypeId: typeId,
+          customRubric: rubric || activeDocType?.auditRubric,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -140,8 +191,40 @@ export default function MarkForgeStudio() {
   };
 
   useEffect(() => {
-    runAnalysis(markdown);
+    const loaded = loadCustomTypesFromStorage();
+    setCustomTypes(loaded);
+    runAnalysis(markdown, 'cv');
   }, []);
+
+  const handleDocTypeSelect = (targetId: string) => {
+    if (targetId === '__add_custom__') {
+      setIsCustomModalOpen(true);
+      return;
+    }
+    if (targetId === docTypeId) return;
+
+    const targetType =
+      allDocumentTypes.find((d) => d.id === targetId) ||
+      getDocumentType(targetId);
+    if (!targetType) return;
+
+    const isStarterUnchanged =
+      activeDocType &&
+      markdown.trim() === (activeDocType.starterMarkdown || '').trim();
+
+    if (isStarterUnchanged) {
+      // Unchanged/pristine: switch immediately
+      setDocTypeId(targetId);
+      setMarkdown(targetType.starterMarkdown);
+      const nextTemplate = targetType.defaultTemplateId || 'ats-classic';
+      setTemplate(nextTemplate);
+      runAnalysis(targetType.starterMarkdown, targetId, targetType.auditRubric);
+    } else {
+      // User typed or modified text: prompt confirmation dialog
+      setPendingTargetTypeId(targetId);
+      setIsSwitchDialogOpen(true);
+    }
+  };
 
   // Update HTML preview smoothly on markdown or template change without flickering
   useEffect(() => {
@@ -165,6 +248,13 @@ export default function MarkForgeStudio() {
 
     const accentColor = isTeal ? '#0f766e' : isTech ? '#2563eb' : isExecutive ? '#854d0e' : '#000000';
     const font = isAcademic ? 'Georgia, serif' : isExecutive ? 'Georgia, serif' : 'system-ui, -apple-system, sans-serif';
+
+    const formatInline = (text: string) => {
+      return text
+        .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-blue-600 underline font-medium hover:text-blue-500" target="_blank" rel="noreferrer">$1</a>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code style="background:#f1f5f9; padding:1px 4px; border-radius:3px; font-size:8.5pt;">$1</code>');
+    };
 
     let i = 0;
     while (i < lines.length) {
@@ -208,19 +298,19 @@ export default function MarkForgeStudio() {
 
       if (trimmed.startsWith('# ')) {
         const align = (tmpl === 'tech-spec' || isAcademic) ? 'text-left' : 'text-center';
-        outHtml += `<h1 style="font-family:${font}; font-size:24pt; font-weight:bold; color:${accentColor}; margin:0 0 6px 0; text-align:${(tmpl === 'tech-spec' || isAcademic) ? 'left' : 'center'}">${trimmed.slice(2)}</h1>`;
+        outHtml += `<h1 style="font-family:${font}; font-size:24pt; font-weight:bold; color:${accentColor}; margin:0 0 6px 0; text-align:${(tmpl === 'tech-spec' || isAcademic) ? 'left' : 'center'}">${formatInline(trimmed.slice(2))}</h1>`;
       } else if (trimmed.startsWith('## ')) {
-        outHtml += `<h2 style="font-family:${font}; font-size:11pt; font-weight:bold; text-transform:${tmpl.includes('ats') ? 'uppercase' : 'none'}; color:${accentColor}; border-bottom:1.5px solid ${accentColor}; margin:16px 0 6px 0; padding-bottom:2px; letter-spacing:0.5px">${trimmed.slice(3)}</h2>`;
+        outHtml += `<h2 style="font-family:${font}; font-size:11pt; font-weight:bold; text-transform:${tmpl.includes('ats') ? 'uppercase' : 'none'}; color:${accentColor}; border-bottom:1.5px solid ${accentColor}; margin:16px 0 6px 0; padding-bottom:2px; letter-spacing:0.5px">${formatInline(trimmed.slice(3))}</h2>`;
       } else if (trimmed.startsWith('### ')) {
-        outHtml += `<h3 style="font-family:${font}; font-size:10pt; font-weight:bold; color:#1f2937; margin:10px 0 2px 0;">${trimmed.slice(4)}</h3>`;
+        outHtml += `<h3 style="font-family:${font}; font-size:10pt; font-weight:bold; color:#1f2937; margin:10px 0 2px 0;">${formatInline(trimmed.slice(4))}</h3>`;
       } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        outHtml += `<li style="font-family:${font}; font-size:9.5pt; color:#374151; margin:0 0 3px 18px; list-style-type:disc">${trimmed.slice(2)}</li>`;
+        outHtml += `<li style="font-family:${font}; font-size:9.5pt; color:#374151; margin:0 0 3px 18px; list-style-type:disc">${formatInline(trimmed.slice(2))}</li>`;
       } else if (trimmed.includes('|') && i < 10) {
-        outHtml += `<div style="font-family:${font}; font-size:9pt; color:#4b5563; text-align:center; padding-bottom:6px; margin-bottom:12px; border-bottom:1px solid #e5e7eb">${trimmed}</div>`;
+        outHtml += `<div style="font-family:${font}; font-size:9pt; color:#4b5563; text-align:center; padding-bottom:6px; margin-bottom:12px; border-bottom:1px solid #e5e7eb">${formatInline(trimmed)}</div>`;
       } else if (/^\*[^*].*[^*]\*$/.test(trimmed)) {
-        outHtml += `<p style="font-family:${font}; font-size:10.5pt; font-style:italic; color:#6b7280; text-align:center; margin:0 0 6px 0">${trimmed.slice(1, -1)}</p>`;
+        outHtml += `<p style="font-family:${font}; font-size:10.5pt; font-style:italic; color:#6b7280; text-align:center; margin:0 0 6px 0">${formatInline(trimmed.slice(1, -1))}</p>`;
       } else {
-        outHtml += `<p style="font-family:${font}; font-size:9.5pt; color:#1f2937; margin:0 0 6px 0; line-height:1.4">${trimmed}</p>`;
+        outHtml += `<p style="font-family:${font}; font-size:9.5pt; color:#1f2937; margin:0 0 6px 0; line-height:1.4">${formatInline(trimmed)}</p>`;
       }
 
       i++;
@@ -344,17 +434,102 @@ export default function MarkForgeStudio() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
-          {/* Template Select */}
-          <div className="w-56">
+          {/* Tier 1: Document Type Select */}
+          <div className="flex items-center gap-1">
+            <div className="w-48">
+              <Select value={docTypeId} onValueChange={handleDocTypeSelect}>
+                <SelectTrigger className="h-8 bg-zinc-950 border-zinc-700 text-xs text-zinc-200">
+                  <SelectValue placeholder="Document Type" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">
+                      Standard Types
+                    </SelectLabel>
+                    <SelectItem value="cv" className="text-xs">
+                      CV / Resume
+                    </SelectItem>
+                    <SelectItem value="portfolio" className="text-xs">
+                      Developer Portfolio
+                    </SelectItem>
+                    <SelectItem value="tech-spec" className="text-xs">
+                      Tech Spec / RFC
+                    </SelectItem>
+                    {listDocumentTypes()
+                      .filter((dt) => !['cv', 'portfolio', 'tech-spec'].includes(dt.id))
+                      .map((dt) => (
+                        <SelectItem key={dt.id} value={dt.id} className="text-xs">
+                          {dt.name}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
+
+                  {customTypes.length > 0 && (
+                    <SelectGroup>
+                      <SelectSeparator className="bg-zinc-800" />
+                      <SelectLabel className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">
+                        Custom Types ({customTypes.length})
+                      </SelectLabel>
+                      {customTypes.map((ct) => (
+                        <SelectItem key={ct.id} value={ct.id} className="text-xs">
+                          {ct.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+
+                  <SelectGroup>
+                    <SelectSeparator className="bg-zinc-800" />
+                    <SelectItem
+                      value="__add_custom__"
+                      className="text-xs text-emerald-400 font-semibold focus:bg-emerald-950/40 focus:text-emerald-300 cursor-pointer"
+                    >
+                      + Add Custom Type...
+                    </SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sliders/settings button to open custom types modal */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-zinc-400 hover:text-white"
+              onClick={() => setIsCustomModalOpen(true)}
+              title="Manage Custom Document Types"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          {/* Tier 2: Template Style Select (Grouped into Recommended vs All) */}
+          <div className="w-52">
             <Select value={template} onValueChange={setTemplate}>
               <SelectTrigger className="h-8 bg-zinc-950 border-zinc-700 text-xs text-zinc-200">
-                <SelectValue placeholder="Select Template" />
+                <SelectValue placeholder="Select Style" />
               </SelectTrigger>
               <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                {recommendedTemplates.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] uppercase font-bold tracking-wider text-amber-400">
+                      ⭐ Recommended for {activeDocType.name.split('/')[0].trim().split(' ')[0]}
+                    </SelectLabel>
+                    {recommendedTemplates.map((t) => (
+                      <SelectItem key={`rec-${t.id}`} value={t.id} className="text-xs font-medium">
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+
                 <SelectGroup>
-                  <SelectLabel className="text-xs text-zinc-400">Document Styles</SelectLabel>
+                  {recommendedTemplates.length > 0 && <SelectSeparator className="bg-zinc-800" />}
+                  <SelectLabel className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">
+                    🌐 All Available Styles
+                  </SelectLabel>
                   {TEMPLATE_PRESETS.map((t) => (
-                    <SelectItem key={t.id} value={t.id} className="text-xs">
+                    <SelectItem key={`all-${t.id}`} value={t.id} className="text-xs">
                       {t.name}
                     </SelectItem>
                   ))}
@@ -466,10 +641,17 @@ export default function MarkForgeStudio() {
                 variant="ghost"
                 size="sm"
                 className="h-6 px-2 text-[11px] text-zinc-400 hover:text-zinc-200"
-                onClick={() => runAnalysis(markdown)}
+                onClick={() => runAnalysis(markdown, docTypeId, activeDocType?.auditRubric)}
+                disabled={isAnalyzing}
               >
-                <RefreshCw className="mr-1 h-3 w-3" />
-                Analyze ATS
+                <RefreshCw className={`mr-1 h-3 w-3 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                {docTypeId === 'cv'
+                  ? 'Analyze ATS'
+                  : docTypeId === 'portfolio'
+                  ? 'Analyze Portfolio'
+                  : docTypeId === 'tech-spec'
+                  ? 'Analyze Spec'
+                  : `Analyze ${activeDocType?.name?.split('/')[0].trim().split(' ')[0] || 'Doc'}`}
               </Button>
               <span className="text-zinc-600">|</span>
               <span className="text-[11px] text-zinc-400">
@@ -505,7 +687,13 @@ export default function MarkForgeStudio() {
                   </TabsTrigger>
                   <TabsTrigger value="ats" className="h-6 px-2.5 text-xs">
                     <Sparkles className="mr-1 h-3 w-3 text-amber-400" />
-                    ATS Audit
+                    {docTypeId === 'cv'
+                      ? 'ATS Audit'
+                      : docTypeId === 'portfolio'
+                      ? 'Portfolio Audit'
+                      : docTypeId === 'tech-spec'
+                      ? 'Spec Audit'
+                      : `${activeDocType?.name?.split('/')[0].trim().split(' ')[0] || 'Doc'} Audit`}
                     {atsReport && (
                       <Badge
                         variant="secondary"
@@ -553,7 +741,7 @@ export default function MarkForgeStudio() {
                     <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 p-5 shadow-sm">
                       <div>
                         <span className="text-xs uppercase tracking-wider text-zinc-400 font-semibold">
-                          ATS COMPLIANCE SCORE
+                          {atsReport.label || 'DOCUMENT COMPLIANCE AUDIT'}
                         </span>
                         <div className="mt-1 flex items-baseline gap-2">
                           <span className="text-4xl font-extrabold text-white">{atsReport.score}</span>
@@ -561,8 +749,10 @@ export default function MarkForgeStudio() {
                         </div>
                         <p className="mt-1 text-xs text-zinc-400">
                           {atsReport.score >= 85
-                            ? 'Excellent! Optimized for modern enterprise ATS parsers.'
-                            : 'Good baseline, but improvements can boost keyword visibility.'}
+                            ? 'Excellent! Meets comprehensive document standards and conventions.'
+                            : atsReport.score >= 70
+                            ? 'Good baseline, but addressing checklist items can significantly elevate impact.'
+                            : 'Needs refinement. Critical sections or recommended elements are missing.'}
                         </p>
                       </div>
 
@@ -583,51 +773,104 @@ export default function MarkForgeStudio() {
                     </div>
 
                     {/* Metric Quick Stats */}
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-center">
-                        <span className="text-[10px] text-zinc-400 uppercase">Impact Verbs</span>
-                        <p className="text-lg font-bold text-purple-400">{atsReport.actionVerbsCount}</p>
-                      </div>
-                      <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-center">
-                        <span className="text-[10px] text-zinc-400 uppercase">Quantified Metrics</span>
-                        <p className="text-lg font-bold text-emerald-400">{atsReport.quantifiedMetricsCount}</p>
+                        <span className="text-[10px] text-zinc-400 uppercase">Words</span>
+                        <p className="text-lg font-bold text-white">
+                          {atsReport.metrics?.wordCount ?? atsReport.wordCount ?? 0}
+                        </p>
                       </div>
                       <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-center">
                         <span className="text-[10px] text-zinc-400 uppercase">Read Time</span>
-                        <p className="text-lg font-bold text-blue-400">~{atsReport.readingTimeMinutes} min</p>
+                        <p className="text-lg font-bold text-blue-400">
+                          ~{atsReport.metrics?.readingTimeMinutes ?? atsReport.readingTimeMinutes ?? 1} min
+                        </p>
                       </div>
+                      {atsReport.actionVerbsCount !== undefined && atsReport.actionVerbsCount > 0 ? (
+                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-center">
+                          <span className="text-[10px] text-zinc-400 uppercase">Action Verbs</span>
+                          <p className="text-lg font-bold text-purple-400">{atsReport.actionVerbsCount}</p>
+                        </div>
+                      ) : atsReport.metrics?.diagramCount !== undefined ? (
+                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-center">
+                          <span className="text-[10px] text-zinc-400 uppercase">Diagrams</span>
+                          <p className="text-lg font-bold text-purple-400">{atsReport.metrics.diagramCount}</p>
+                        </div>
+                      ) : null}
+                      {atsReport.metrics?.linkCount !== undefined ? (
+                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-center">
+                          <span className="text-[10px] text-zinc-400 uppercase">Links</span>
+                          <p className="text-lg font-bold text-emerald-400">{atsReport.metrics.linkCount}</p>
+                        </div>
+                      ) : (atsReport.metrics?.metricPointsCount !== undefined || atsReport.quantifiedMetricsCount !== undefined) ? (
+                        <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-center">
+                          <span className="text-[10px] text-zinc-400 uppercase">Quantified</span>
+                          <p className="text-lg font-bold text-emerald-400">
+                            {atsReport.metrics?.metricPointsCount ?? atsReport.quantifiedMetricsCount ?? 0}
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
 
-                    {/* Standard Sections Checklist */}
+                    {/* Dynamic Checklist Items */}
                     <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 space-y-2.5">
-                      <span className="text-xs font-bold text-zinc-200">Standard Sections Audit</span>
+                      <span className="text-xs font-bold text-zinc-200">
+                        Requirements & Compliance Checklist
+                      </span>
                       <div className="grid grid-cols-1 gap-2 pt-1">
-                        {atsReport.sections.map((sec: any) => (
-                          <div
-                            key={sec.section}
-                            className="flex items-center justify-between text-xs py-1 px-2 rounded bg-zinc-950/60 border border-zinc-800/60"
-                          >
-                            <span className="text-zinc-300">{sec.section}</span>
-                            {sec.found ? (
-                              <Badge variant="success" className="h-5 text-[10px]">
-                                <CheckCircle2 className="mr-1 h-3 w-3" /> Found
-                              </Badge>
-                            ) : (
-                              <Badge variant="destructive" className="h-5 text-[10px]">
-                                <AlertTriangle className="mr-1 h-3 w-3" /> Missing
-                              </Badge>
-                            )}
-                          </div>
-                        ))}
+                        {atsReport.checklist && atsReport.checklist.length > 0
+                          ? atsReport.checklist.map((item: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between text-xs py-2 px-3 rounded bg-zinc-950/60 border border-zinc-800/60"
+                              >
+                                <div className="flex items-center gap-2 pr-2">
+                                  {item.passed ? (
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                                  ) : (
+                                    <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+                                  )}
+                                  <div>
+                                    <div className="font-medium text-zinc-200">{item.title}</div>
+                                    {item.detail && (
+                                      <div className="text-[11px] text-zinc-400">{item.detail}</div>
+                                    )}
+                                  </div>
+                                </div>
+                                <Badge
+                                  variant={item.passed ? 'success' : 'destructive'}
+                                  className="h-5 text-[10px] shrink-0"
+                                >
+                                  {item.passed ? `+${item.weight} pts` : `0/${item.weight} pts`}
+                                </Badge>
+                              </div>
+                            ))
+                          : atsReport.sections?.map((sec: any) => (
+                              <div
+                                key={sec.section}
+                                className="flex items-center justify-between text-xs py-1 px-2 rounded bg-zinc-950/60 border border-zinc-800/60"
+                              >
+                                <span className="text-zinc-300">{sec.section}</span>
+                                {sec.found ? (
+                                  <Badge variant="success" className="h-5 text-[10px]">
+                                    <CheckCircle2 className="mr-1 h-3 w-3" /> Found
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="destructive" className="h-5 text-[10px]">
+                                    <AlertTriangle className="mr-1 h-3 w-3" /> Missing
+                                  </Badge>
+                                )}
+                              </div>
+                            ))}
                       </div>
                     </div>
 
                     {/* Critical Warnings */}
-                    {atsReport.warnings.length > 0 && (
+                    {atsReport.warnings && atsReport.warnings.length > 0 && (
                       <Alert variant="warning">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle className="text-xs font-bold">Suggestions to improve parseability</AlertTitle>
-                        <AlertDescription className="text-xs space-y-1 mt-1">
+                        <AlertTriangle className="h-4 w-4 text-amber-400" />
+                        <AlertTitle className="text-xs font-bold text-amber-400">Suggestions to improve document</AlertTitle>
+                        <AlertDescription className="text-xs space-y-1 mt-1 text-zinc-300">
                           {atsReport.warnings.map((w: string, i: number) => (
                             <div key={i}>• {w}</div>
                           ))}
@@ -635,8 +878,21 @@ export default function MarkForgeStudio() {
                       </Alert>
                     )}
 
+                    {/* Suggestions */}
+                    {atsReport.suggestions && atsReport.suggestions.length > 0 && (
+                      <Alert className="border-blue-900/50 bg-blue-950/20 text-blue-200">
+                        <Info className="h-4 w-4 text-blue-400" />
+                        <AlertTitle className="text-xs font-bold text-blue-300">Optimization Recommendations</AlertTitle>
+                        <AlertDescription className="text-xs space-y-1 mt-1 text-zinc-300">
+                          {atsReport.suggestions.map((s: string, i: number) => (
+                            <div key={i}>• {s}</div>
+                          ))}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     {/* Action Verbs Found Tag Cloud */}
-                    {atsReport.actionVerbsFound.length > 0 && (
+                    {atsReport.actionVerbsFound && atsReport.actionVerbsFound.length > 0 && (
                       <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 space-y-2">
                         <span className="text-xs font-bold text-zinc-200">
                           Detected Action Verbs ({atsReport.actionVerbsFound.length})
@@ -657,6 +913,52 @@ export default function MarkForgeStudio() {
           </div>
         </div>
       </div>
+
+      {/* Template Switcher Confirmation Dialog */}
+      {pendingTargetType && (
+        <TemplateSwitchDialog
+          open={isSwitchDialogOpen}
+          currentType={{
+            id: activeDocType.id,
+            name: activeDocType.name,
+            description: activeDocType.description,
+          }}
+          targetType={{
+            id: pendingTargetType.id,
+            name: pendingTargetType.name,
+            description: pendingTargetType.description,
+          }}
+          onConfirm={(loadStarter) => {
+            setDocTypeId(pendingTargetType.id);
+            const targetTemplate = pendingTargetType.defaultTemplateId || 'ats-classic';
+            setTemplate(targetTemplate);
+            if (loadStarter) {
+              setMarkdown(pendingTargetType.starterMarkdown);
+              runAnalysis(pendingTargetType.starterMarkdown, pendingTargetType.id, pendingTargetType.auditRubric);
+            } else {
+              runAnalysis(markdown, pendingTargetType.id, pendingTargetType.auditRubric);
+            }
+            setIsSwitchDialogOpen(false);
+            setPendingTargetTypeId(null);
+          }}
+          onCancel={() => {
+            setIsSwitchDialogOpen(false);
+            setPendingTargetTypeId(null);
+          }}
+        />
+      )}
+
+      {/* Custom Document Types Modal */}
+      <CustomTypeModal
+        open={isCustomModalOpen}
+        onOpenChange={setIsCustomModalOpen}
+        onCustomTypesChange={(updatedTypes) => {
+          setCustomTypes(updatedTypes);
+        }}
+        onSelectType={(newTypeId) => {
+          handleDocTypeSelect(newTypeId);
+        }}
+      />
     </div>
   );
 }
