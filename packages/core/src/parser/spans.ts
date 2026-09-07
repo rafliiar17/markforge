@@ -6,7 +6,7 @@ export interface InlineSpan {
 
 export function parseInlineSpans(text: string): InlineSpan[] {
   const spans: InlineSpan[] = [];
-  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`|\[(.+?)\]\((.+?)\))/g;
+  const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|\[([^\[\]]+)\]\(([^()\s]+)\))/g;
   let last = 0;
   let match: RegExpExecArray | null;
 

@@ -119,20 +119,18 @@ export function parseMarkdownToAST(markdown: string): ASTNode[] {
     }
 
     // Bullet items
-    if (/^(\s*)([-*+])\s+(.+)$/.test(rawLine)) {
-      const match = rawLine.match(/^(\s*)([-*+])\s+(.+)$/);
-      if (match) {
-        const indent = match[1].length;
-        const level = Math.min(Math.floor(indent / 2), 3);
-        const content = match[3].trim();
-        nodes.push({
-          type: 'bullet',
-          text: content,
-          level,
-        });
-        i++;
-        continue;
-      }
+    const bulletMatch = /^[ \t]*[-*+][ \t]+(.*)$/.exec(rawLine);
+    if (bulletMatch) {
+      const indent = rawLine.length - rawLine.trimStart().length;
+      const level = Math.min(Math.floor(indent / 2), 3);
+      const content = bulletMatch[1].trim();
+      nodes.push({
+        type: 'bullet',
+        text: content,
+        level,
+      });
+      i++;
+      continue;
     }
 
     // Contact bar heuristic (early in document, contains | or • and contact keywords/urls)

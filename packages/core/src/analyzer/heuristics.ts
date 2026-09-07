@@ -45,7 +45,7 @@ export function analyzeMarkdownDocument(
 
   // Detect Links (markdown links [text](url), raw URLs, github.com links)
   const rawUrlMatches = (markdown || '').match(/https?:\/\/[^\s\)\],]+/gi) || [];
-  const mdLinkMatches = (markdown || '').match(/\[([^\]]+)\]\(([^)]+)\)/gi) || [];
+  const mdLinkMatches = (markdown || '').match(/\[([^\[\]\r\n]+)\]\(([^()\s\r\n]+)\)/gi) || [];
   const distinctLinks = new Set<string>([...rawUrlMatches, ...mdLinkMatches]);
   const linkCount = distinctLinks.size;
 
