@@ -29,6 +29,7 @@ temp/
 .env*.local
 .env
 .turbo
+.playwright-mcp/
 
 # IDE
 .vscode/

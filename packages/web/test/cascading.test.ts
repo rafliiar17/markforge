@@ -190,6 +190,35 @@ describe('TemplateSwitchDialog Component', () => {
     expect(html).toContain('Pertahankan Teks Saat Ini');
     expect(html).toContain('Muat Contoh Developer Portfolio');
     expect(html).toContain('Batal');
+
+    // Layout & margin protection classes
+    expect(html).toContain('max-w-xl');
+    expect(html).toContain('sm:max-w-2xl');
+  });
+
+  it('should render dialog in English when I18nProvider is set to en', () => {
+    const { I18nProvider } = require('../lib/i18n');
+    const current = { id: 'cv', name: 'Resume' };
+    const target = { id: 'portfolio', name: 'Portfolio' };
+
+    const html = renderToString(
+      React.createElement(
+        I18nProvider,
+        { initialLocale: 'en' },
+        React.createElement(TemplateSwitchDialog, {
+          open: true,
+          currentType: current,
+          targetType: target,
+          onConfirm: () => {},
+          onCancel: () => {},
+        })
+      )
+    );
+
+    expect(html).toContain('Switch Document Type');
+    expect(html).toContain('Keep Current Text');
+    expect(html).toContain('Load Portfolio Starter');
+    expect(html).toContain('Cancel');
   });
 });
 
