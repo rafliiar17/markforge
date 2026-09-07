@@ -14,6 +14,7 @@
   <a href="https://nextjs.org"><img src="https://img.shields.io/badge/web-Next.js%2015-black.svg" alt="Next.js 15" /></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/protocol-MCP%20Ready-7c3aed.svg" alt="MCP Ready" /></a>
   <a href="https://ui.shadcn.com"><img src="https://img.shields.io/badge/ui-shadcn%2Fui-000000.svg" alt="shadcn/ui" /></a>
+  <a href="https://mark.arafz.id"><img src="https://img.shields.io/badge/deployed-mark.arafz.id-f38020.svg?logo=cloudflare" alt="Cloudflare Edge" /></a>
   <a href="https://github.com/rafliiar17/markforge/actions"><img src="https://img.shields.io/badge/CI-passing-emerald.svg" alt="CI Status" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/typescript-strict-3178c6.svg" alt="TypeScript Strict" /></a>
 </p>
@@ -153,7 +154,9 @@ bun run packages/cli/src/index.ts doctor
 
 ### 2. Interactive Web Studio
 
-Launch the split-screen web studio locally:
+🌐 **Live Edge Deployment**: [https://mark.arafz.id](https://mark.arafz.id) *(Global Next.js 15 deployment on Cloudflare Workers)*
+
+Or launch the split-screen web studio locally:
 
 ```bash
 # Clone the repository

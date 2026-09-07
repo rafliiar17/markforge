@@ -3,9 +3,9 @@ import { checkSystemEngines } from '@markforge/core';
 
 export async function GET() {
   const engines = checkSystemEngines();
-  const mem = process.memoryUsage();
+  const mem = typeof process.memoryUsage === 'function' ? process.memoryUsage() : { rss: 0, heapUsed: 0, heapTotal: 0 };
 
-  const isHealthy = engines.node || engines.bun;
+  const isHealthy = typeof process !== 'undefined' && (Boolean(process.version) || engines.node || engines.bun);
 
   return NextResponse.json(
     {
