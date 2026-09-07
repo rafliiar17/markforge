@@ -13,7 +13,7 @@
     "dev:cli": "bun --cwd packages/cli dev",
     "build": "bun run --filter \"*\" build",
     "test": "bun test",
-    "lint": "tsc --noEmit",
+    "lint": "bun --cwd packages/core tsc --noEmit && bun --cwd packages/cli tsc --noEmit && bun --cwd packages/mcp tsc --noEmit && bun --cwd packages/web tsc --noEmit",
     "cli": "bun run packages/cli/src/index.ts",
     "mcp": "bun run packages/mcp/src/index.ts"
   },
