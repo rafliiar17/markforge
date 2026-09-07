@@ -40,4 +40,12 @@ describe('DocumentPreview & DocumentPreviewSkeleton', () => {
     expect(html).toContain('Jane Doe');
     expect(html).toContain('data-testid="preview-syncing-indicator"');
   });
+
+  it('should render mermaid diagram container in DocumentPreview', () => {
+    const sampleHtml = '<div class="mermaid">graph TD\n  A --> B</div>';
+    const html = renderToString(React.createElement(DocumentPreview, { html: sampleHtml }));
+
+    expect(html).toContain('class="mermaid');
+    expect(html).toContain('graph TD');
+  });
 });

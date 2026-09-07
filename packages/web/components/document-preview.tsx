@@ -98,9 +98,66 @@ export function DocumentPreviewSkeleton({ className }: { className?: string }) {
 
 /**
  * Real-time A4 Document Canvas Preview.
- * Renders in-place with zero flicker during typing and handles live DOM updates cleanly.
+ * Renders in-place with zero flicker during typing and handles live DOM updates cleanly,
+ * including client-side SVG rendering for Mermaid flowcharts and diagrams.
  */
 export function DocumentPreview({ html, isUpdating, className }: DocumentPreviewProps) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!containerRef.current || typeof window === 'undefined') return;
+
+    const mermaidNodes = containerRef.current.querySelectorAll('.mermaid');
+    if (mermaidNodes.length === 0) return;
+
+    let isMounted = true;
+
+    // Dynamically import mermaid on the client side
+    import('mermaid')
+      .then((m) => {
+        if (!isMounted) return;
+        const mermaid = m.default;
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'neutral',
+          securityLevel: 'loose',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+          flowchart: {
+            htmlLabels: true,
+            curve: 'basis',
+          },
+        });
+
+        mermaidNodes.forEach(async (node, index) => {
+          const el = node as HTMLElement;
+          const rawSource = el.getAttribute('data-mermaid-src') || el.textContent || '';
+          if (!el.getAttribute('data-mermaid-src')) {
+            el.setAttribute('data-mermaid-src', rawSource);
+          }
+
+          if (!rawSource.trim()) return;
+
+          try {
+            const uniqueId = `mermaid-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`;
+            const { svg } = await mermaid.render(uniqueId, rawSource.trim());
+            if (isMounted && el) {
+              el.innerHTML = svg;
+              el.setAttribute('data-rendered', 'true');
+            }
+          } catch {
+            // Live typing might produce temporary incomplete syntax; keep existing content
+          }
+        });
+      })
+      .catch((err) => {
+        console.warn('Error loading mermaid module:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [html]);
+
   return (
     <div className={cn('relative w-full max-w-[720px]', className)}>
       {isUpdating && (
@@ -114,6 +171,7 @@ export function DocumentPreview({ html, isUpdating, className }: DocumentPreview
       )}
 
       <div
+        ref={containerRef}
         data-testid="document-preview-canvas"
         className="min-h-[960px] rounded-sm bg-white px-10 py-8 text-black shadow-2xl"
         dangerouslySetInnerHTML={{ __html: html }}

@@ -20,6 +20,7 @@ import {
   UploadCloud,
   RefreshCw,
   SlidersHorizontal,
+  Workflow,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -165,9 +166,38 @@ export default function MarkForgeStudio() {
     const accentColor = isTeal ? '#0f766e' : isTech ? '#2563eb' : isExecutive ? '#854d0e' : '#000000';
     const font = isAcademic ? 'Georgia, serif' : isExecutive ? 'Georgia, serif' : 'system-ui, -apple-system, sans-serif';
 
-    lines.forEach((line, i) => {
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
       const trimmed = line.trim();
-      if (!trimmed) return;
+
+      // Handle Code Blocks & Mermaid Flowcharts
+      if (trimmed.startsWith('```')) {
+        const lang = trimmed.slice(3).trim().toLowerCase();
+        const codeLines: string[] = [];
+        i++;
+        while (i < lines.length && !lines[i].trim().startsWith('```')) {
+          codeLines.push(lines[i]);
+          i++;
+        }
+        if (i < lines.length) i++; // skip closing ```
+        const rawCode = codeLines.join('\n');
+        if (lang === 'mermaid') {
+          outHtml += `<div class="mermaid my-5 flex justify-center overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 shadow-sm">${rawCode}</div>`;
+        } else {
+          const safeCode = rawCode
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+          outHtml += `<pre style="font-family:'Courier New', monospace; font-size:9pt; background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; padding:8px 12px; margin:10px 0; overflow-x:auto;"><code>${safeCode}</code></pre>`;
+        }
+        continue;
+      }
+
+      if (!trimmed) {
+        i++;
+        continue;
+      }
 
       if (trimmed.startsWith('# ')) {
         const align = (tmpl === 'tech-spec' || isAcademic) ? 'text-left' : 'text-center';
@@ -185,7 +215,9 @@ export default function MarkForgeStudio() {
       } else {
         outHtml += `<p style="font-family:${font}; font-size:9.5pt; color:#1f2937; margin:0 0 6px 0; line-height:1.4">${trimmed}</p>`;
       }
-    });
+
+      i++;
+    }
 
     setPreviewHtml(outHtml);
   };
@@ -263,6 +295,12 @@ export default function MarkForgeStudio() {
       };
       reader.readAsText(file);
     }
+  };
+
+  // Insert Mermaid Flowchart snippet into markdown editor
+  const insertMermaidSnippet = () => {
+    const snippet = `\n\n## System Flow & Architecture\n\`\`\`mermaid\ngraph TD\n  A[Markdown Input] --> B[MarkForge Engine]\n  B --> C{Output Format?}\n  C -->|DOCX| D[OpenXML Document]\n  C -->|PDF| E[LibreOffice / Weasyprint]\n  C -->|Web| F[Live Studio + Mermaid SVG]\n  D --> G[Download .docx]\n  E --> H[Download .pdf]\n\`\`\`\n`;
+    setMarkdown((prev) => prev + snippet);
   };
 
   const mcpConfigJson = JSON.stringify(
@@ -406,6 +444,17 @@ export default function MarkForgeStudio() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[11px] text-zinc-400 hover:text-emerald-300"
+                onClick={insertMermaidSnippet}
+                title="Insert sample Mermaid flowchart"
+              >
+                <Workflow className="mr-1 h-3 w-3 text-emerald-400" />
+                Mermaid Flow
+              </Button>
+              <span className="text-zinc-600">|</span>
               <Button
                 variant="ghost"
                 size="sm"
