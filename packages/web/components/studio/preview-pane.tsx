@@ -60,7 +60,7 @@ export function PreviewPane({
   return (
     <div className="flex w-1/2 flex-col bg-zinc-900/40">
       {/* Tabs Bar */}
-      <div className="flex h-9 shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-3">
+      <div className="tabs-header flex h-9 shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-3">
         <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
           <div className="flex items-center justify-between">
             <TabsList className="h-7 bg-zinc-950 p-0.5">

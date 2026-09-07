@@ -56,6 +56,7 @@ export function EditorPane({
 
   return (
     <div
+      data-testid="editor-pane"
       className="flex w-1/2 flex-col border-r border-zinc-800 bg-zinc-950"
       onDragOver={handleDragOver}
       onDrop={onDrop}

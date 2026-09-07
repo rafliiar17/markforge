@@ -38,31 +38,6 @@ export interface CompilationTelemetry {
   serverTimingHeader: string;
 }
 
-export type TelemetryObserver = (event: CompilationTelemetry) => void;
-
-class TelemetryEmitter {
-  private observers: TelemetryObserver[] = [];
-
-  subscribe(observer: TelemetryObserver): () => void {
-    this.observers.push(observer);
-    return () => {
-      this.observers = this.observers.filter((o) => o !== observer);
-    };
-  }
-
-  emit(event: CompilationTelemetry): void {
-    for (const observer of this.observers) {
-      try {
-        observer(event);
-      } catch {
-        // Suppress observer exceptions
-      }
-    }
-  }
-}
-
-export const telemetryEmitter = new TelemetryEmitter();
-
 export function generateTraceId(): string {
   const bytes = new Uint8Array(16);
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {

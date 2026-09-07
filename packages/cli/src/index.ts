@@ -19,7 +19,7 @@ import {
   parseMarkdownToAST,
   formatServerTiming,
   CompilationTelemetry,
-} from '../../core/src';
+} from '@markforge/core';
 
 const program = new Command();
 
@@ -280,12 +280,12 @@ program
     console.log(`  ${pc.bold('Quantified Accomplishments:')} ${pc.blue(String(report.quantifiedMetricsCount))} metrics/metrics found\n`);
 
     console.log(pc.bold('  Standard Sections Checklist:'));
-    for (const sec of report.sections) {
+    for (const sec of report.sections || []) {
       const status = sec.found ? pc.green('✔ Found') : pc.red('✖ Missing');
       console.log(`    ${status} ${pc.dim('—')} ${sec.section} ${pc.dim(`(weight: ${sec.weight}pts)`)}`);
     }
 
-    if (report.actionVerbsFound.length > 0) {
+    if (report.actionVerbsFound && report.actionVerbsFound.length > 0) {
       console.log(`\n  ${pc.bold('High-Impact Verbs Detected:')}`);
       console.log(`    ${pc.dim(report.actionVerbsFound.slice(0, 15).join(', '))}${report.actionVerbsFound.length > 15 ? '...' : ''}`);
     }
@@ -344,9 +344,10 @@ program
   .option('--json', 'Output diagnostics as JSON', false)
   .action((options) => {
     const engines = checkSystemEngines();
+    const templates = Object.keys(BUILTIN_TEMPLATES);
 
     if (options.json) {
-      console.log(JSON.stringify(engines, null, 2));
+      console.log(JSON.stringify({ engines, templates }, null, 2));
       return;
     }
 
@@ -365,6 +366,11 @@ program
     printItem('Pandoc', engines.pandoc, 'Universal document converter fallback', 'sudo pacman -S pandoc  OR  apt install pandoc');
     printItem('Node.js runtime', engines.node, 'JavaScript runtime environment', 'https://nodejs.org');
     printItem('Bun runtime', engines.bun, 'Fast all-in-one JavaScript runtime & package manager', 'curl -fsSL https://bun.sh/install | bash');
+
+    console.log(pc.bold('\n  Document Templates Detected:'));
+    for (const [id, t] of Object.entries(BUILTIN_TEMPLATES)) {
+      console.log(`    ${pc.green('✔')} ${pc.cyan(id)} ${pc.dim(`(${t.name})`)}`);
+    }
 
     console.log('\n' + pc.dim('───────────────────────────────────────────────────────────────────────'));
     if (engines.soffice) {

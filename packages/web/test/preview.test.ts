@@ -10,6 +10,8 @@ import {
   validateMermaidSyntax,
   escapeHtml,
 } from '../components/document-preview';
+import { StudioHeader } from '../components/studio/studio-header';
+import { BUILTIN_DOCUMENT_TYPES } from '@markforge/core';
 
 describe('DocumentPreview & DocumentPreviewSkeleton', () => {
   it('should render DocumentPreviewSkeleton with high-fidelity shimmer elements', () => {
@@ -164,5 +166,45 @@ describe('DocumentPreview & DocumentPreviewSkeleton', () => {
     expect(html).toContain('border-emerald-200/80');
     expect(html).toContain('data-template="modern-accent"');
   });
+
+  it('should render visual A4 page-break dashed guide line in DocumentPreview', () => {
+    const sampleHtml = '<h1>Curriculum Vitae</h1>';
+    const html = renderToString(React.createElement(DocumentPreview, { html: sampleHtml }));
+
+    // Must render page break container and guide line
+    expect(html).toContain('data-testid="page-break-container"');
+    expect(html).toContain('data-testid="page-break-guide"');
+    expect(html).toContain('border-dashed');
+    expect(html).toContain('print:hidden');
+    expect(html).toContain('1050px');
+    expect(html).toContain('doc-canvas');
+  });
+
+  it('should render browser print button with Printer icon in StudioHeader', () => {
+    const headerHtml = renderToString(
+      React.createElement(StudioHeader, {
+        docTypeId: 'cv',
+        onDocTypeSelect: () => {},
+        allDocumentTypes: [BUILTIN_DOCUMENT_TYPES['cv']],
+        customTypes: [],
+        onOpenCustomModal: () => {},
+        template: 'ats-classic',
+        onTemplateSelect: () => {},
+        recommendedTemplates: [],
+        activeDocType: BUILTIN_DOCUMENT_TYPES['cv'],
+        onExportDocx: () => {},
+        isGeneratingDocx: false,
+        onExportPdf: () => {},
+        isGeneratingPdf: false,
+        onOpenCheatsheet: () => {},
+      })
+    );
+
+    // Must render Print / Browser PDF button with title and printer icon
+    expect(headerHtml).toContain('title="Cetak / PDF Browser"');
+    expect(headerHtml).toContain('Cetak / PDF Browser');
+    expect(headerHtml).toContain('lucide-printer');
+  });
 });
+
 

@@ -20,6 +20,7 @@ import {
   BookOpen,
   Cpu,
   Languages,
+  Printer,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { McpSetupDialog } from '@/components/modals/mcp-setup-dialog';
@@ -246,6 +247,18 @@ export function StudioHeader({
           {isGeneratingPdf
             ? t('header.compiling') || 'Compiling...'
             : t('header.exportPdf') || 'Export PDF'}
+        </Button>
+
+        {/* Browser Print / Fallback PDF Button */}
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 text-xs text-zinc-300 hover:text-white"
+          onClick={() => window.print()}
+          title={t('header.printBrowser')}
+        >
+          <Printer className="mr-1.5 h-3.5 w-3.5 text-blue-400" />
+          <span className="hidden lg:inline">{t('header.printBrowser')}</span>
         </Button>
 
         {/* Markdown Format Guide Button */}

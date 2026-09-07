@@ -25,6 +25,7 @@ export const enTranslations: TranslationSchema = {
     templateStyle: 'Template Style',
     exportDocx: 'Export DOCX',
     exportPdf: 'Export PDF',
+    printBrowser: 'Print / Browser PDF',
     compiling: 'Compiling...',
     mcpServer: 'MCP Server',
     syntaxGuide: 'Syntax Guide',

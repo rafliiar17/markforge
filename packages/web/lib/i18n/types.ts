@@ -55,6 +55,7 @@ export interface TranslationSchema {
     templateStyle: string;
     exportDocx: string;
     exportPdf: string;
+    printBrowser?: string;
     compiling: string;
     mcpServer: string;
     syntaxGuide: string;

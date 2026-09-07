@@ -13,7 +13,7 @@
     "dev:cli": "bun --cwd packages/cli dev",
     "build": "bun run --filter \"*\" build",
     "test": "bun test",
-    "lint": "bunx biome check . || echo 'Lint passed'",
+    "lint": "tsc --noEmit",
     "cli": "bun run packages/cli/src/index.ts",
     "mcp": "bun run packages/mcp/src/index.ts"
   },

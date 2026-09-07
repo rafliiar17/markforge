@@ -25,6 +25,7 @@ export const idTranslations: TranslationSchema = {
     templateStyle: 'Gaya Templat',
     exportDocx: 'Ekspor DOCX',
     exportPdf: 'Ekspor PDF',
+    printBrowser: 'Cetak / PDF Browser',
     compiling: 'Mengompilasi...',
     mcpServer: 'Server MCP',
     syntaxGuide: 'Panduan Sintaks',

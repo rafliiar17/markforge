@@ -57,14 +57,14 @@ const mockLocalStorage = {
 
 (globalThis as any).localStorage = mockLocalStorage;
 
-import { TemplateSwitchDialog } from '../components/template-switch-dialog';
+import { TemplateSwitchDialog } from '../components/modals/template-switch-dialog';
 import {
   CustomTypeModal,
   CUSTOM_TYPES_STORAGE_KEY,
   loadCustomTypesFromStorage,
   saveCustomTypesToStorage,
-} from '../components/custom-type-modal';
-import { MarkdownCheatsheetModal } from '../components/markdown-cheatsheet-modal';
+} from '../components/modals/custom-type-modal';
+import { MarkdownCheatsheetModal } from '../components/modals/markdown-cheatsheet-modal';
 import {
   BUILTIN_DOCUMENT_TYPES,
   listDocumentTypes,

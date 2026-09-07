@@ -432,7 +432,7 @@ const DocumentCanvas = React.memo(function DocumentCanvas({
     <div
       ref={containerRef}
       data-testid="document-preview-canvas"
-      className="min-h-[960px] rounded-sm bg-white px-10 py-8 text-black shadow-2xl"
+      className="doc-canvas min-h-[960px] rounded-sm bg-white px-10 py-8 text-black shadow-2xl"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -442,6 +442,7 @@ const DocumentCanvas = React.memo(function DocumentCanvas({
  * Real-time A4 Document Canvas Preview.
  * Renders in-place with zero flicker during typing and handles live DOM updates cleanly,
  * including client-side SVG rendering for Mermaid flowcharts and diagrams with template-synced theming.
+ * Features visual A4 page-break guides (subtle dashed border every 297mm / ~1050px) hidden on print.
  */
 export function DocumentPreview({
   html,
@@ -449,8 +450,39 @@ export function DocumentPreview({
   className,
   template = 'ats-classic',
 }: DocumentPreviewProps) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [pageBreaks, setPageBreaks] = React.useState<number[]>([1]);
+
+  React.useEffect(() => {
+    if (!containerRef.current || typeof window === 'undefined') return;
+
+    const updatePageBreaks = () => {
+      if (!containerRef.current) return;
+      const height = containerRef.current.scrollHeight || containerRef.current.clientHeight;
+      const a4PageHeight = 1050; // Visual A4 page height (~297mm) at 720px preview canvas width
+      const numPages = Math.max(1, Math.floor(height / a4PageHeight));
+      const breaks: number[] = [];
+      for (let i = 1; i <= numPages; i++) {
+        breaks.push(i);
+      }
+      setPageBreaks(breaks);
+    };
+
+    updatePageBreaks();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => {
+        updatePageBreaks();
+      });
+      observer.observe(containerRef.current);
+      return () => {
+        observer.disconnect();
+      };
+    }
+  }, [html]);
+
   return (
-    <div className={cn('relative w-full max-w-[720px]', className)}>
+    <div ref={containerRef} className={cn('relative w-full max-w-[720px]', className)}>
       {isUpdating && (
         <div
           data-testid="preview-syncing-indicator"
@@ -460,6 +492,26 @@ export function DocumentPreview({
           Syncing
         </div>
       )}
+
+      {/* Visual A4 Page Break Guide Lines (subtle dashed border every 297mm / ~1050px) */}
+      <div
+        data-testid="page-break-container"
+        className="pointer-events-none absolute inset-0 overflow-hidden print:hidden"
+        aria-hidden="true"
+      >
+        {pageBreaks.map((page) => (
+          <div
+            key={page}
+            data-testid="page-break-guide"
+            className="page-break-guide pointer-events-none absolute left-0 right-0 z-10 flex items-center justify-end border-b border-dashed border-zinc-400/60 dark:border-zinc-600/60 print:hidden"
+            style={{ top: `${page * 1050}px` }}
+          >
+            <span className="mr-3 -translate-y-1/2 rounded bg-zinc-100/95 px-1.5 py-0.5 text-[9px] font-mono font-medium text-zinc-500 border border-zinc-200/80 shadow-xs dark:bg-zinc-800/95 dark:text-zinc-400 dark:border-zinc-700/80 print:hidden">
+              Page {page} Break (A4)
+            </span>
+          </div>
+        ))}
+      </div>
 
       <DocumentCanvas html={html} template={template} />
     </div>

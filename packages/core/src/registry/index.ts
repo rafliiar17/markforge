@@ -1,24 +1,8 @@
-import { TemplateDefinition, TemplateId, CompileOptions } from '../types';
+import { TemplateDefinition } from '../types';
 import { BUILTIN_TEMPLATES } from '../templates';
 import { createLogger } from '../observability';
 
 const logger = createLogger('markforge:registry');
-
-export interface EngineConversionContext {
-  markdown: string;
-  options: CompileOptions;
-  tempDir: string;
-  docxBuffer?: Buffer;
-  htmlContent?: string;
-}
-
-export interface DocumentConverterEngine {
-  name: string;
-  targetFormat: 'pdf' | 'docx' | 'html';
-  priority: number; // Higher number = executed first in fallback chain
-  isAvailable(): boolean | Promise<boolean>;
-  convert(ctx: EngineConversionContext): Promise<Buffer>;
-}
 
 export class TemplateRegistry {
   private templates: Map<string, TemplateDefinition> = new Map();
@@ -55,24 +39,5 @@ export class TemplateRegistry {
   }
 }
 
-export class EngineRegistry {
-  private engines: DocumentConverterEngine[] = [];
-
-  register(engine: DocumentConverterEngine): void {
-    this.engines.push(engine);
-    // Sort descending by priority
-    this.engines.sort((a, b) => b.priority - a.priority);
-    logger.debug({ format: engine.targetFormat, priority: engine.priority }, `Registered engine "${engine.name}"`);
-  }
-
-  getEnginesForFormat(format: 'pdf' | 'docx' | 'html'): DocumentConverterEngine[] {
-    return this.engines.filter((e) => e.targetFormat === format);
-  }
-
-  list(): DocumentConverterEngine[] {
-    return [...this.engines];
-  }
-}
-
 export const templateRegistry = new TemplateRegistry();
-export const engineRegistry = new EngineRegistry();
+
