@@ -115,7 +115,7 @@ markforge analyze resume.md --min-score 80 --json
 ---
 
 ### 3.4. `markforge doctor`
-Diagnoses your local environment and verifies installed rendering engines, dependencies, and PDF capabilities.
+Diagnoses your local environment and verifies installed rendering engines, dependencies, native Bun Markdown, and PDF capabilities.
 
 ```bash
 markforge doctor
@@ -123,6 +123,7 @@ markforge doctor
 
 #### Diagnostic Checks:
 - **Runtime Version**: Bun or Node.js runtime compatibility.
+- **Native Bun Markdown (`Bun.markdown`)**: Detects native Zig-powered CommonMark/GFM engine.
 - **LibreOffice (`soffice`)**: Detects path and version (required for 1:1 DOCX-to-PDF conversion).
 - **WeasyPrint**: Detects Python WeasyPrint installation.
 - **Pandoc**: Detects Pandoc availability.
@@ -130,7 +131,24 @@ markforge doctor
 
 ---
 
-### 3.5. `markforge templates`
+### 3.5. `markforge preview` (alias `view`)
+Renders and previews any Markdown document directly inside your terminal with syntax styling using the native Zig-powered `Bun.markdown.ansi` engine.
+
+```bash
+markforge preview <file>
+# Or via shorthand alias:
+markforge view <file>
+```
+
+#### Example:
+```bash
+# Preview formatted resume in terminal
+markforge preview resume.md
+```
+
+---
+
+### 3.6. `markforge templates`
 Lists all available built-in typography and document presets with descriptions and typographic parameters.
 
 ```bash

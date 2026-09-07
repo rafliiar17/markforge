@@ -244,6 +244,32 @@ program
       ?.parse(['build', file, '-t', options.template, '-f', options.format, '-w'], { from: 'user' });
   });
 
+// ─── Preview Command (Terminal ANSI Preview) ────────────────────────────────
+program
+  .command('preview')
+  .alias('view')
+  .description('Preview Markdown document in terminal with styling via native Bun.markdown engine')
+  .argument('<file>', 'Input Markdown file')
+  .action((filePath: string) => {
+    const resolvedPath = path.resolve(process.cwd(), filePath);
+    if (!fs.existsSync(resolvedPath)) {
+      console.error(pc.red(`✖ Error: File not found: ${resolvedPath}`));
+      process.exit(1);
+    }
+
+    const markdown = fs.readFileSync(resolvedPath, 'utf8');
+    const bun = (globalThis as any).Bun;
+
+    console.log(pc.bold(pc.cyan(`\n⚡ MarkForge Terminal Preview: ${pc.white(path.basename(resolvedPath))}\n`)));
+
+    if (bun?.markdown?.ansi) {
+      const rendered = bun.markdown.ansi(markdown);
+      console.log(rendered);
+    } else {
+      console.log(markdown);
+    }
+  });
+
 // ─── Analyze Command (ATS Scorecard) ───────────────────────────────────────
 program
   .command('analyze')
@@ -345,9 +371,11 @@ program
   .action((options) => {
     const engines = checkSystemEngines();
     const templates = Object.keys(BUILTIN_TEMPLATES);
+    const bun = (globalThis as any).Bun;
+    const hasBunMarkdown = Boolean(bun?.markdown?.html && bun?.markdown?.ansi);
 
     if (options.json) {
-      console.log(JSON.stringify({ engines, templates }, null, 2));
+      console.log(JSON.stringify({ engines: { ...engines, bunMarkdown: hasBunMarkdown }, templates }, null, 2));
       return;
     }
 
@@ -366,6 +394,7 @@ program
     printItem('Pandoc', engines.pandoc, 'Universal document converter fallback', 'sudo pacman -S pandoc  OR  apt install pandoc');
     printItem('Node.js runtime', engines.node, 'JavaScript runtime environment', 'https://nodejs.org');
     printItem('Bun runtime', engines.bun, 'Fast all-in-one JavaScript runtime & package manager', 'curl -fsSL https://bun.sh/install | bash');
+    printItem('Native Bun Markdown (Bun.markdown)', hasBunMarkdown, 'Native Zig CommonMark/GFM & ANSI terminal engine', 'Upgrade Bun to >= 1.3.8');
 
     console.log(pc.bold('\n  Document Templates Detected:'));
     for (const [id, t] of Object.entries(BUILTIN_TEMPLATES)) {
