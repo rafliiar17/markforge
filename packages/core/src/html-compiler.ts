@@ -73,11 +73,15 @@ export function compileMarkdownToHtml(
         break;
       }
       case 'code_block': {
-        const safeCode = (node.text || '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
-        bodyHtml.push(`<pre class="doc-code-block"><code>${safeCode}</code></pre>`);
+        if (node.language === 'mermaid') {
+          bodyHtml.push(`<div class="mermaid">${node.text || ''}</div>`);
+        } else {
+          const safeCode = (node.text || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+          bodyHtml.push(`<pre class="doc-code-block"><code>${safeCode}</code></pre>`);
+        }
         break;
       }
       case 'quote': {
