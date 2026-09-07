@@ -1,4 +1,4 @@
-import { TemplateDefinition, TemplateId } from './types';
+import { TemplateDefinition, TemplateId } from '../types';
 
 export const BUILTIN_TEMPLATES: Record<TemplateId, TemplateDefinition> = {
   'ats-classic': {
@@ -93,9 +93,15 @@ export const BUILTIN_TEMPLATES: Record<TemplateId, TemplateDefinition> = {
   },
 };
 
+export const TEMPLATE_PRESETS = BUILTIN_TEMPLATES;
+
 export function getTemplate(id?: string): TemplateDefinition {
   if (id && id in BUILTIN_TEMPLATES) {
     return BUILTIN_TEMPLATES[id as TemplateId];
   }
   return BUILTIN_TEMPLATES['ats-classic'];
+}
+
+export function listTemplates(): TemplateDefinition[] {
+  return Object.values(BUILTIN_TEMPLATES);
 }

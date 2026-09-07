@@ -15,6 +15,8 @@ import {
   templateRegistry,
   withSpan,
 } from '../src';
+import { execSync } from 'node:child_process';
+import { writeFileSync, unlinkSync } from 'node:fs';
 
 const SAMPLE_MD = `# Jane Doe
 *Senior Staff Software Engineer*
@@ -87,6 +89,16 @@ describe('MarkForge Core', () => {
     expect(html).toContain('Jane Doe');
     expect(html).toContain('doc-contact-bar');
     expect(html).toContain('#0F766E');
+  });
+
+  it('should compile mermaid code blocks into mermaid diagram elements', () => {
+    const mdWithMermaid = `\`\`\`mermaid
+graph TD
+  A[Start] --> B[End]
+\`\`\``;
+    const html = compileMarkdownToHtml(mdWithMermaid);
+    expect(html).toContain('<div class="mermaid">');
+    expect(html).toContain('graph TD');
   });
 
   it('should analyze ATS score and metrics', () => {
@@ -163,3 +175,176 @@ describe('Logging, Telemetry & Registry', () => {
     expect(templateRegistry.has('custom-template')).toBe(true);
   });
 });
+
+describe('Mermaid Diagram Architecture & Compilation', () => {
+  function readDocxXml(buffer: Buffer): string {
+    const tmpPath = `/tmp/test-docx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.docx`;
+    try {
+      writeFileSync(tmpPath, buffer);
+      return execSync(`unzip -p ${tmpPath} word/document.xml`).toString('utf-8');
+    } finally {
+      try {
+        unlinkSync(tmpPath);
+      } catch {
+        // ignore cleanup error
+      }
+    }
+  }
+
+  describe('Flowcharts (graph TD / graph LR)', () => {
+    it('should parse flowchart code blocks into AST with mermaid language', () => {
+      const md = `\`\`\`mermaid
+graph TD
+  A[Client] --> B[API Gateway]
+  B --> C[Microservice]
+\`\`\``;
+      const nodes = parseMarkdownToAST(md);
+      expect(nodes.length).toBe(1);
+      expect(nodes[0].type).toBe('code_block');
+      expect(nodes[0].language).toBe('mermaid');
+      expect(nodes[0].text).toContain('graph TD');
+      expect(nodes[0].text).toContain('A[Client] --> B[API Gateway]');
+    });
+
+    it('should compile top-down flowchart (graph TD) to HTML with responsive container and styles', () => {
+      const md = `\`\`\`mermaid
+graph TD
+  Start([Start Process]) --> Step1[Validate Input]
+  Step1 --> Decision{Valid?}
+  Decision -- Yes --> Finish([Complete])
+  Decision -- No --> Error([Return 400])
+\`\`\``;
+      const html = compileMarkdownToHtml(md, { template: 'tech-spec' });
+      expect(html).toContain('<div class="doc-mermaid-container"><div class="mermaid">');
+      expect(html).toContain('graph TD');
+      expect(html).toContain('Validate Input');
+      expect(html).toContain('.doc-mermaid-container {');
+      expect(html).toContain('.mermaid {');
+      expect(html).toContain('overflow-x: auto;');
+      expect(html).toContain('break-inside: avoid;');
+    });
+
+    it('should compile left-to-right flowchart (graph LR) to HTML with responsive container', () => {
+      const md = `\`\`\`mermaid
+graph LR
+  Client[Web Client] --> CDN[Cloudflare CDN] --> Origin[Application Server]
+\`\`\``;
+      const html = compileMarkdownToHtml(md);
+      expect(html).toContain('<div class="doc-mermaid-container"><div class="mermaid">');
+      expect(html).toContain('graph LR');
+      expect(html).toContain('Web Client');
+      expect(html).toContain('Cloudflare CDN');
+    });
+  });
+
+  describe('Sequence Diagrams (sequenceDiagram)', () => {
+    it('should compile sequence diagram to HTML container properly wrapped', () => {
+      const md = `\`\`\`mermaid
+sequenceDiagram
+  autonumber
+  actor User
+  participant Web as Frontend UI
+  participant Core as MarkForge Core
+  User->>Web: Click "Compile"
+  Web->>Core: compileMarkdownToHtml(md)
+  Core-->>Web: Return HTML
+  Web-->>User: Display Document Preview
+\`\`\``;
+      const html = compileMarkdownToHtml(md, { template: 'modern-accent' });
+      expect(html).toContain('<div class="doc-mermaid-container"><div class="mermaid">');
+      expect(html).toContain('sequenceDiagram');
+      expect(html).toContain('Frontend UI');
+      expect(html).toContain('MarkForge Core');
+      expect(html).toContain('Display Document Preview');
+    });
+
+    it('should handle case-insensitive and trimmed mermaid code block tags', () => {
+      const md = `\`\`\`Mermaid
+sequenceDiagram
+  Alice->>Bob: Hello
+\`\`\``;
+      const html = compileMarkdownToHtml(md);
+      expect(html).toContain('<div class="doc-mermaid-container"><div class="mermaid">');
+      expect(html).toContain('sequenceDiagram');
+      expect(html).toContain('Alice->>Bob: Hello');
+    });
+  });
+
+  describe('DOCX Compilation with Mermaid Blocks', () => {
+    it('should format flowchart into an architectural callout block with [Mermaid Flowchart] language tag', async () => {
+      const md = `# System Architecture
+Here is the system workflow:
+
+\`\`\`mermaid
+graph TD
+  A[Client Request] --> B[API Gateway]
+  B --> C[Auth Handler]
+  C --> D[Document Engine]
+\`\`\`
+
+The workflow completes synchronously.`;
+
+      const buffer = await compileMarkdownToDocx(md, { template: 'tech-spec' });
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(buffer.length).toBeGreaterThan(4000);
+
+      const xml = readDocxXml(buffer);
+      expect(xml).toContain('[Mermaid Flowchart]');
+      expect(xml).toContain('graph TD');
+      expect(xml).toContain('Client Request');
+      expect(xml).toContain('API Gateway');
+      expect(xml).toContain('Document Engine');
+      // Verify callout table borders and shading
+      expect(xml).toContain('w:tbl');
+      expect(xml).toContain('F8FAFC');
+    });
+
+    it('should format sequence diagram into an architectural callout block in DOCX', async () => {
+      const md = `\`\`\`mermaid
+sequenceDiagram
+  actor Client
+  participant Server
+  Client->>Server: POST /documents
+  Server-->>Client: 201 Created
+\`\`\``;
+
+      const buffer = await compileMarkdownToDocx(md, { template: 'modern-accent' });
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(buffer.length).toBeGreaterThan(4000);
+
+      const xml = readDocxXml(buffer);
+      expect(xml).toContain('[Mermaid Flowchart]');
+      expect(xml).toContain('sequenceDiagram');
+      expect(xml).toContain('POST /documents');
+      expect(xml).toContain('201 Created');
+    });
+
+    it('should preserve both regular code blocks and mermaid callout blocks in the same document', async () => {
+      const md = `# Hybrid Document
+
+Standard code snippet:
+\`\`\`typescript
+export const greeting = "Hello World";
+\`\`\`
+
+Architecture diagram:
+\`\`\`mermaid
+graph LR
+  Input --> Output
+\`\`\`
+`;
+
+      const html = compileMarkdownToHtml(md);
+      expect(html).toContain('<pre class="doc-code-block"><code>export const greeting = "Hello World";</code></pre>');
+      expect(html).toContain('<div class="doc-mermaid-container"><div class="mermaid">graph LR');
+
+      const docx = await compileMarkdownToDocx(md);
+      expect(docx).toBeInstanceOf(Buffer);
+      const xml = readDocxXml(docx);
+      expect(xml).toContain('[Mermaid Flowchart]');
+      expect(xml).toContain('greeting');
+      expect(xml).toContain('graph LR');
+    });
+  });
+});
+

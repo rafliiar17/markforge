@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 MarkForge Documentation
+    url: https://github.com/rafliiar17/markforge/tree/main/docs
+    about: Read our architecture docs, CLI manual, MCP guide, and Markdown cheatsheet.
+  - name: 💬 GitHub Discussions & Q&A
+    url: https://github.com/rafliiar17/markforge/discussions
+    about: Ask questions, share your custom templates, or discuss design concepts.
+  - name: 🔒 Report a Security Vulnerability
+    url: https://github.com/rafliiar17/markforge/security/advisories/new
+    about: Privately disclose a security issue to the MarkForge maintainers.

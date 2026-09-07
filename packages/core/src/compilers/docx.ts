@@ -13,11 +13,10 @@ import {
   WidthType,
   ShadingType,
 } from 'docx';
-import { CompileOptions, TemplateStyleConfig } from './types';
-import { getTemplate } from './templates';
-import { parseMarkdownToAST, parseInlineSpans, InlineSpan } from './parser';
-import { createLogger } from './logger';
-import { withSpan } from './otel';
+import { CompileOptions, TemplateStyleConfig } from '../types';
+import { getTemplate } from '../templates';
+import { parseMarkdownToAST, parseInlineSpans, InlineSpan } from '../parser';
+import { createLogger, withSpan } from '../observability';
 
 const logger = createLogger('markforge:docx');
 
@@ -258,25 +257,113 @@ export async function compileMarkdownToDocx(
           }
 
           case 'code_block': {
+            const isMermaid = node.language?.trim().toLowerCase() === 'mermaid';
             const codeLines = (node.text || '').split('\n');
-            for (const cl of codeLines) {
-              children.push(
+
+            if (isMermaid) {
+              const accentColor = (style.accentColor || '0D9488').replace(/^#/, '');
+              const borderColor = (style.borderColor || 'CBD5E1').replace(/^#/, '');
+              const calloutParagraphs: Paragraph[] = [
                 new Paragraph({
                   children: [
                     new TextRun({
-                      text: cl || ' ',
+                      text: '[Mermaid Flowchart]',
+                      bold: true,
+                      size: 16,
                       font: style.fontCode || 'Consolas',
-                      size: 18,
-                      color: '0F172A',
+                      color: accentColor,
                     }),
                   ],
-                  shading: {
-                    type: ShadingType.CLEAR,
-                    fill: 'F8FAFC',
-                  },
-                  spacing: { after: 0, line: 220 },
+                  spacing: { before: 40, after: 60 },
+                }),
+                ...codeLines.map(
+                  (cl) =>
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: cl || ' ',
+                          font: style.fontCode || 'Consolas',
+                          size: 17,
+                          color: '1E293B',
+                        }),
+                      ],
+                      spacing: { after: 0, line: 220 },
+                    })
+                ),
+              ];
+
+              children.push(
+                new Table({
+                  rows: [
+                    new TableRow({
+                      children: [
+                        new TableCell({
+                          borders: {
+                            left: {
+                              style: BorderStyle.SINGLE,
+                              size: 16,
+                              color: accentColor,
+                            },
+                            top: {
+                              style: BorderStyle.SINGLE,
+                              size: 4,
+                              color: borderColor,
+                            },
+                            right: {
+                              style: BorderStyle.SINGLE,
+                              size: 4,
+                              color: borderColor,
+                            },
+                            bottom: {
+                              style: BorderStyle.SINGLE,
+                              size: 4,
+                              color: borderColor,
+                            },
+                          },
+                          shading: {
+                            type: ShadingType.CLEAR,
+                            fill: 'F8FAFC',
+                          },
+                          margins: {
+                            top: 100,
+                            bottom: 100,
+                            left: 150,
+                            right: 150,
+                          },
+                          children: calloutParagraphs,
+                        }),
+                      ],
+                    }),
+                  ],
+                  width: { size: 100, type: WidthType.PERCENTAGE },
                 })
               );
+
+              children.push(
+                new Paragraph({
+                  spacing: { after: 80 },
+                })
+              );
+            } else {
+              for (const cl of codeLines) {
+                children.push(
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: cl || ' ',
+                        font: style.fontCode || 'Consolas',
+                        size: 18,
+                        color: '0F172A',
+                      }),
+                    ],
+                    shading: {
+                      type: ShadingType.CLEAR,
+                      fill: 'F8FAFC',
+                    },
+                    spacing: { after: 0, line: 220 },
+                  })
+                );
+              }
             }
             break;
           }

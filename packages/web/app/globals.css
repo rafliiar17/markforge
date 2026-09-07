@@ -72,3 +72,77 @@
 .dark ::-webkit-scrollbar-thumb {
   background: #334155;
 }
+
+/* Print CSS Optimization for browser-side PDF printing & 1:1 A4 Parity */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide header, left editor pane, tabs bar, and action controls */
+  header,
+  [data-testid="editor-pane"],
+  .tabs-header,
+  button {
+    display: none !important;
+  }
+
+  /* Hide visual guides and preview indicators during printing */
+  [data-testid="page-break-guide"],
+  [data-testid="page-break-container"],
+  .page-break-guide,
+  [data-testid="preview-syncing-indicator"] {
+    display: none !important;
+  }
+
+  /* Reset layout wrappers so canvas can fill the page cleanly */
+  html,
+  body,
+  main,
+  div {
+    overflow: visible !important;
+  }
+
+  .h-screen {
+    height: auto !important;
+    min-height: 100% !important;
+    background: white !important;
+  }
+
+  .flex-1,
+  .w-1\/2 {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Ensure the document preview canvas occupies 100% width/height without margins or dark background */
+  [data-testid="document-preview-canvas"],
+  .doc-canvas {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    padding: 15mm 20mm !important;
+    box-shadow: none !important;
+    background: white !important;
+    color: black !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+}
+

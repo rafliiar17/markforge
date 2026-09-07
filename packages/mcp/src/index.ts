@@ -19,21 +19,22 @@ import {
   BUILTIN_TEMPLATES,
   getTemplate,
   TemplateId,
-} from '../../core/src';
+} from '@markforge/core';
 
-const server = new Server(
-  {
-    name: 'markforge-mcp',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {},
-      resources: {},
-      prompts: {},
+export function createMcpServer(): Server {
+  const server = new Server(
+    {
+      name: 'markforge-mcp',
+      version: '1.0.0',
     },
-  }
-);
+    {
+      capabilities: {
+        tools: {},
+        resources: {},
+        prompts: {},
+      },
+    }
+  );
 
 // ─── Tools Definition ────────────────────────────────────────────────────────
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -320,13 +321,22 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
   throw new Error(`Prompt not found: ${name}`);
 });
 
-// ─── Start Server Transport ─────────────────────────────────────────────────
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  return server;
 }
 
-main().catch((err) => {
-  console.error('MarkForge MCP Server error:', err);
-  process.exit(1);
-});
+export const server = createMcpServer();
+
+// ─── Start Server Transport ─────────────────────────────────────────────────
+export async function startServer(transport?: StdioServerTransport) {
+  const t = transport || new StdioServerTransport();
+  await server.connect(t);
+  return server;
+}
+
+// Auto-start only when executed as process (not during unit testing)
+if (process.env.NODE_ENV !== 'test' && (import.meta.main || process.argv[1]?.includes('mcp'))) {
+  startServer().catch((err) => {
+    console.error('MarkForge MCP Server error:', err);
+    process.exit(1);
+  });
+}

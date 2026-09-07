@@ -72,23 +72,87 @@ export interface ASTNode {
   language?: string;
 }
 
+export type DocumentCategory = 
+  | 'resume' 
+  | 'portfolio' 
+  | 'tech-spec' 
+  | 'academic' 
+  | 'custom';
+
+export interface AuditRubricConfig {
+  type: 'ats' | 'portfolio' | 'tech-spec' | 'custom-checklist';
+  label: string;
+  requiredHeadings?: string[];
+  detectLinks?: boolean;
+  detectMetrics?: boolean;
+  detectDiagrams?: boolean;
+  minWordCount?: number;
+  maxWordCount?: number;
+}
+
+export interface DocumentTypeDefinition {
+  id: string;
+  name: string;
+  category: DocumentCategory;
+  description: string;
+  defaultTemplateId: TemplateId | string;
+  recommendedTemplateIds: (TemplateId | string)[];
+  starterMarkdown: string;
+  auditRubric: AuditRubricConfig;
+  isCustom?: boolean;
+}
+
 export interface ATSSectionCheck {
   section: string;
   found: boolean;
   weight: number;
 }
 
-export interface ATSReport {
-  score: number; // 0 to 100
-  grade: 'A+' | 'A' | 'B' | 'C' | 'D';
+export interface DocumentAuditChecklistItem {
+  title: string;
+  passed: boolean;
+  detail: string;
+  weight: number;
+}
+
+export interface DocumentAuditMetrics {
   wordCount: number;
   readingTimeMinutes: number;
-  actionVerbsCount: number;
-  actionVerbsFound: string[];
-  quantifiedMetricsCount: number; // e.g. %, $, numbers
-  sections: ATSSectionCheck[];
+  linkCount?: number;
+  diagramCount?: number;
+  metricPointsCount?: number;
+}
+
+export interface DocumentAuditResult {
+  score: number; // 0 to 100
+  grade: 'A+' | 'A' | 'B' | 'C' | 'D';
+  label: string;
+  checklist: Array<{ title: string; passed: boolean; detail: string; weight: number }>;
+  metrics: {
+    wordCount: number;
+    readingTimeMinutes: number;
+    linkCount?: number;
+    diagramCount?: number;
+    metricPointsCount?: number;
+  };
   warnings: string[];
   suggestions: string[];
+  // Backward compatibility fields for ATS callers
+  actionVerbsCount?: number;
+  actionVerbsFound?: string[];
+  quantifiedMetricsCount?: number;
+  sections?: ATSSectionCheck[];
+  wordCount?: number;
+  readingTimeMinutes?: number;
+}
+
+export interface ATSReport extends DocumentAuditResult {
+  actionVerbsCount: number;
+  actionVerbsFound: string[];
+  quantifiedMetricsCount: number;
+  sections: ATSSectionCheck[];
+  wordCount: number;
+  readingTimeMinutes: number;
 }
 
 export interface SystemEngineCheck {
