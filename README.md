@@ -144,6 +144,9 @@ bun run packages/cli/src/index.ts analyze resume.md
 # Enforce minimum ATS score threshold in CI (exit code 1 if < 85)
 bun run packages/cli/src/index.ts analyze resume.md --min-score 85 --json
 
+# Preview formatted markdown directly in terminal via native Bun.markdown
+bun run packages/cli/src/index.ts preview resume.md
+
 # Verify local rendering engines
 bun run packages/cli/src/index.ts doctor
 ```

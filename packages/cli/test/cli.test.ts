@@ -91,6 +91,7 @@ describe('MarkForge CLI Automated Test Suite', () => {
       expect(res.stdout).toContain('Pandoc');
       expect(res.stdout).toContain('Node.js runtime');
       expect(res.stdout).toContain('Bun runtime');
+      expect(res.stdout).toContain('Native Bun Markdown (Bun.markdown)');
     });
 
     it('should verify document templates detection in doctor output', () => {
@@ -115,7 +116,9 @@ describe('MarkForge CLI Automated Test Suite', () => {
       expect(parsed.engines).toHaveProperty('pandoc');
       expect(parsed.engines).toHaveProperty('node');
       expect(parsed.engines).toHaveProperty('bun');
+      expect(parsed.engines).toHaveProperty('bunMarkdown');
       expect(typeof parsed.engines.bun).toBe('boolean');
+      expect(typeof parsed.engines.bunMarkdown).toBe('boolean');
 
       expect(parsed).toHaveProperty('templates');
       expect(Array.isArray(parsed.templates)).toBe(true);
@@ -124,6 +127,35 @@ describe('MarkForge CLI Automated Test Suite', () => {
       expect(parsed.templates).toContain('tech-spec');
       expect(parsed.templates).toContain('academic');
       expect(parsed.templates).toContain('executive');
+    });
+  });
+
+  describe('Preview Command & Native Bun Markdown Engine', () => {
+    it('should preview markdown document in terminal via markforge preview', () => {
+      const sampleMd = path.join(tmpDir, 'preview-sample.md');
+      fs.writeFileSync(sampleMd, '# Preview Test Document\n\nThis is a **bold** preview test.\n', 'utf8');
+
+      const res = runCli(['preview', sampleMd]);
+      expect(res.exitCode).toBe(0);
+      expect(res.stdout).toContain('MarkForge Terminal Preview: preview-sample.md');
+      expect(res.stdout).toContain('Preview Test Document');
+    });
+
+    it('should support markforge view alias', () => {
+      const sampleMd = path.join(tmpDir, 'view-sample.md');
+      fs.writeFileSync(sampleMd, '## Subheading View\n\n- Bullet 1\n- Bullet 2\n', 'utf8');
+
+      const res = runCli(['view', sampleMd]);
+      expect(res.exitCode).toBe(0);
+      expect(res.stdout).toContain('MarkForge Terminal Preview: view-sample.md');
+      expect(res.stdout).toContain('Subheading View');
+    });
+
+    it('should exit with error if preview target file does not exist', () => {
+      const missingFile = path.join(tmpDir, 'missing-preview.md');
+      const res = runCli(['preview', missingFile]);
+      expect(res.exitCode).not.toBe(0);
+      expect(res.stderr).toContain('File not found');
     });
   });
 
