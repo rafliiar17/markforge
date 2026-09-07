@@ -89,6 +89,16 @@ describe('MarkForge Core', () => {
     expect(html).toContain('#0F766E');
   });
 
+  it('should compile mermaid code blocks into mermaid diagram elements', () => {
+    const mdWithMermaid = `\`\`\`mermaid
+graph TD
+  A[Start] --> B[End]
+\`\`\``;
+    const html = compileMarkdownToHtml(mdWithMermaid);
+    expect(html).toContain('<div class="mermaid">');
+    expect(html).toContain('graph TD');
+  });
+
   it('should analyze ATS score and metrics', () => {
     const report = analyzeMarkdownDocument(SAMPLE_MD);
     expect(report.score).toBeGreaterThanOrEqual(80);
