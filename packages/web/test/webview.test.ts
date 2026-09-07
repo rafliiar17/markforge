@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { setTimeout } from 'timers/promises';
+import path from 'path';
 
 describe('MarkForge Web Studio E2E via Bun.WebView', () => {
   let webview: any;
@@ -82,6 +83,75 @@ describe('MarkForge Web Studio E2E via Bun.WebView', () => {
     // Persist screenshot to output directory
     await Bun.write('/home/archy/Projects/markforge/output/webview-studio-screenshot.png', blob);
   }, 10000);
+
+  it('should click Mermaid Flow toolbar button and render Mermaid SVG diagram in A4 canvas', async () => {
+    // Click "Mermaid Flow" toolbar button
+    const clickMermaidScript = `
+      (() => {
+        const btn = Array.from(document.querySelectorAll('button')).find((el) =>
+          el.textContent?.includes('Mermaid Flow') || el.getAttribute('title')?.includes('Mermaid flowchart')
+        );
+        if (btn) {
+          btn.click();
+          return true;
+        }
+        return false;
+      })()
+    `;
+
+    const clicked = await webview.evaluate(clickMermaidScript);
+    expect(clicked).toBe(true);
+
+    // Verify markdown editor textarea contains the inserted mermaid snippet
+    const textareaValue = await webview.evaluate('document.querySelector("textarea")?.value');
+    expect(textareaValue).toBeDefined();
+    expect(textareaValue).toContain('```mermaid');
+    expect(textareaValue).toContain('System Flow & Architecture');
+
+    // Wait for React update and Mermaid SVG rendering in the DOM
+    let hasMermaidSvg = false;
+    for (let i = 0; i < 25; i++) {
+      hasMermaidSvg = await webview.evaluate(`
+        (() => {
+          const svg = document.querySelector('.mermaid svg') || document.querySelector('[data-testid="document-preview-canvas"] .mermaid svg');
+          return !!svg;
+        })()
+      `);
+      if (hasMermaidSvg) break;
+      await setTimeout(500);
+    }
+    expect(hasMermaidSvg).toBe(true);
+
+    // Verify that .mermaid svg or rendered diagram exists in the A4 canvas
+    const diagramCheck = await webview.evaluate(`
+      (() => {
+        const canvas = document.querySelector('[data-testid="document-preview-canvas"]') || document.querySelector('.shadow-2xl');
+        const mermaidEl = canvas ? canvas.querySelector('.mermaid') : document.querySelector('.mermaid');
+        const svg = mermaidEl ? mermaidEl.querySelector('svg') : null;
+        return {
+          hasCanvas: !!canvas,
+          hasMermaidInCanvas: !!(canvas && mermaidEl && canvas.contains(mermaidEl)),
+          hasSvg: !!svg,
+          isRendered: mermaidEl ? mermaidEl.getAttribute('data-rendered') === 'true' : false,
+          svgContent: svg ? svg.textContent : '',
+        };
+      })()
+    `);
+
+    expect(diagramCheck.hasCanvas).toBe(true);
+    expect(diagramCheck.hasMermaidInCanvas).toBe(true);
+    expect(diagramCheck.hasSvg).toBe(true);
+    expect(diagramCheck.isRendered).toBe(true);
+    expect(diagramCheck.svgContent).toContain('MarkForge Engine');
+
+    // Capture screenshot via webview.screenshot() and write to output/mermaid-studio-preview.png
+    const blob = await webview.screenshot();
+    expect(blob).toBeDefined();
+    expect(blob.size).toBeGreaterThan(1000);
+
+    const outputPath = path.resolve(import.meta.dir, '../../../output/mermaid-studio-preview.png');
+    await Bun.write(outputPath, blob);
+  }, 20000);
 
   it('should interact with tabs and switch to ATS Audit panel', async () => {
     const clickScript = `

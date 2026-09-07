@@ -183,7 +183,14 @@ export default function MarkForgeStudio() {
         if (i < lines.length) i++; // skip closing ```
         const rawCode = codeLines.join('\n');
         if (lang === 'mermaid') {
-          outHtml += `<div class="mermaid my-5 flex justify-center overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 shadow-sm">${rawCode}</div>`;
+          const containerThemeClass = isTeal
+            ? 'border-emerald-200/80 bg-emerald-50/20'
+            : isTech
+            ? 'border-blue-200/80 bg-blue-50/20'
+            : isExecutive
+            ? 'border-amber-200/80 bg-amber-50/20'
+            : 'border-zinc-200/80 bg-zinc-50/40';
+          outHtml += `<div class="mermaid my-6 flex flex-col items-center justify-center overflow-x-auto rounded-xl border ${containerThemeClass} p-5 shadow-sm" data-template="${tmpl}">${rawCode}</div>`;
         } else {
           const safeCode = rawCode
             .replace(/&/g, '&amp;')
@@ -527,6 +534,7 @@ export default function MarkForgeStudio() {
               <LazyDocumentPreview
                 html={previewHtml}
                 isUpdating={isUpdatingPreview}
+                template={template}
               />
             )}
 
