@@ -114,7 +114,7 @@ describe('MarkForge Web Studio E2E via Bun.WebView', () => {
     const textareaValue = await webview.evaluate('document.querySelector("textarea")?.value');
     expect(textareaValue).toBeDefined();
     expect(textareaValue).toContain('```mermaid');
-    expect(textareaValue).toContain('System Flow & Architecture');
+    expect(textareaValue).toContain('graph TD');
 
     // Wait for React update and Mermaid SVG rendering in the DOM
     let hasMermaidSvg = false;
@@ -150,7 +150,7 @@ describe('MarkForge Web Studio E2E via Bun.WebView', () => {
     expect(diagramCheck.hasMermaidInCanvas).toBe(true);
     expect(diagramCheck.hasSvg).toBe(true);
     expect(diagramCheck.isRendered).toBe(true);
-    expect(diagramCheck.svgContent).toContain('MarkForge Engine');
+    expect(diagramCheck.svgContent).toContain('Mulai Proyek');
 
     // Capture screenshot via webview.screenshot() and write to output/mermaid-studio-preview.png
     const blob = await webview.screenshot();
