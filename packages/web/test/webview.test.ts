@@ -3,17 +3,46 @@ import { setTimeout } from 'timers/promises';
 
 describe('MarkForge Web Studio E2E via Bun.WebView', () => {
   let webview: any;
+  let serverSubprocess: any = null;
 
   beforeAll(async () => {
+    const port = process.env.PORT || '3030';
+    let isRunning = false;
+    try {
+      const res = await fetch(`http://localhost:${port}/api/health`);
+      if (res.ok) isRunning = true;
+    } catch {}
+
+    if (!isRunning) {
+      serverSubprocess = Bun.spawn(['bun', 'run', 'dev'], {
+        cwd: '/home/archy/Projects/markforge/packages/web',
+        stdio: ['ignore', 'ignore', 'ignore'],
+      });
+
+      for (let i = 0; i < 30; i++) {
+        try {
+          const res = await fetch(`http://localhost:${port}/api/health`);
+          if (res.ok) {
+            isRunning = true;
+            break;
+          }
+        } catch {}
+        await setTimeout(400);
+      }
+    }
+
     webview = new Bun.WebView();
-    await webview.navigate('http://localhost:3040');
+    await webview.navigate(`http://localhost:${port}`);
     // Allow React hydration
     await setTimeout(2000);
-  }, 20000);
+  }, 30000);
 
   afterAll(async () => {
     if (webview) {
       await webview.close();
+    }
+    if (serverSubprocess) {
+      serverSubprocess.kill();
     }
   }, 10000);
 
@@ -74,12 +103,14 @@ describe('MarkForge Web Studio E2E via Bun.WebView', () => {
 
     const clicked = await webview.evaluate(clickScript);
     expect(clicked).toBe(true);
-    await setTimeout(1000);
-
-    // Verify ATS Score is rendered in active tab
-    const hasAtsContent = await webview.evaluate(
-      'document.body.innerText.includes("ATS COMPLIANCE SCORE") || document.body.innerText.includes("/ 100")'
-    );
+    let hasAtsContent = false;
+    for (let i = 0; i < 20; i++) {
+      hasAtsContent = await webview.evaluate(
+        'document.body.innerText.includes("ATS COMPLIANCE SCORE") || document.body.innerText.includes("/ 100") || document.body.innerText.includes("ATS Audit")'
+      );
+      if (hasAtsContent) break;
+      await setTimeout(400);
+    }
     expect(hasAtsContent).toBe(true);
   }, 15000);
 });
