@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileText,
   Download,
@@ -46,6 +46,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import dynamic from 'next/dynamic';
+import { DocumentPreviewSkeleton } from '@/components/document-preview';
+
+const LazyDocumentPreview = dynamic(
+  () => import('@/components/document-preview').then((mod) => mod.DocumentPreview),
+  {
+    ssr: false,
+    loading: () => <DocumentPreviewSkeleton />,
+  }
+);
 
 const DEFAULT_MARKDOWN = `# Jane Doe
 *Senior Staff Software Engineer*
@@ -94,7 +104,6 @@ export default function MarkForgeStudio() {
   const [markdown, setMarkdown] = useState<string>(DEFAULT_MARKDOWN);
   const [template, setTemplate] = useState<string>('ats-classic');
   const [activeTab, setActiveTab] = useState<string>('preview');
-  const [isPending, startTransition] = useTransition();
 
   // Export & preview states
   const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
@@ -105,8 +114,9 @@ export default function MarkForgeStudio() {
   // ATS Report state
   const [atsReport, setAtsReport] = useState<any>(null);
 
-  // Preview HTML
+  // Preview HTML & sync state
   const [previewHtml, setPreviewHtml] = useState<string>('');
+  const [isUpdatingPreview, setIsUpdatingPreview] = useState<boolean>(false);
 
   // Fetch / Compute ATS report
   const runAnalysis = async (content: string) => {
@@ -132,12 +142,14 @@ export default function MarkForgeStudio() {
     runAnalysis(markdown);
   }, []);
 
-  // Update HTML preview on markdown or template change
+  // Update HTML preview smoothly on markdown or template change without flickering
   useEffect(() => {
-    startTransition(() => {
-      // In client mode, we can build a live formatted simulation
-      generateLocalPreview(markdown, template);
-    });
+    setIsUpdatingPreview(true);
+    generateLocalPreview(markdown, template);
+    const timer = setTimeout(() => {
+      setIsUpdatingPreview(false);
+    }, 120);
+    return () => clearTimeout(timer);
   }, [markdown, template]);
 
   const generateLocalPreview = (md: string, tmpl: string) => {
@@ -463,35 +475,10 @@ export default function MarkForgeStudio() {
           {/* Tab Content Container */}
           <div className="flex-1 overflow-y-auto p-6 flex justify-center">
             {activeTab === 'preview' && (
-              <div className="w-full max-w-[720px]">
-                {isPending ? (
-                  /* High-Fidelity Shimmer Skeleton state matching A4 document */
-                  <div className="rounded-sm bg-white p-10 shadow-2xl space-y-4">
-                    <div className="flex flex-col items-center space-y-2">
-                      <Skeleton className="h-8 w-64" />
-                      <Skeleton className="h-4 w-48" />
-                      <Skeleton className="h-3 w-80" />
-                    </div>
-                    <div className="pt-4 space-y-2">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-3 w-5/6" />
-                    </div>
-                    <div className="pt-4 space-y-2">
-                      <Skeleton className="h-4 w-40" />
-                      <Skeleton className="h-3 w-48" />
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-3 w-11/12" />
-                    </div>
-                  </div>
-                ) : (
-                  /* Realistic A4 Paginated Document Canvas */
-                  <div
-                    className="min-h-[960px] rounded-sm bg-white px-10 py-8 text-black shadow-2xl transition-all duration-200"
-                    dangerouslySetInnerHTML={{ __html: previewHtml }}
-                  />
-                )}
-              </div>
+              <LazyDocumentPreview
+                html={previewHtml}
+                isUpdating={isUpdatingPreview}
+              />
             )}
 
             {activeTab === 'ats' && (
