@@ -64,6 +64,7 @@ import {
   loadCustomTypesFromStorage,
   saveCustomTypesToStorage,
 } from '../components/custom-type-modal';
+import { MarkdownCheatsheetModal } from '../components/markdown-cheatsheet-modal';
 import {
   BUILTIN_DOCUMENT_TYPES,
   listDocumentTypes,
@@ -298,5 +299,40 @@ describe('Custom Type Builder & LocalStorage Serialization', () => {
     expect(Array.isArray(importedTypes)).toBe(true);
     expect(importedTypes[0].name).toBe('Infrastructure RFC');
     expect(importedTypes[0].auditRubric.requiredHeadings).toContain('Trade-offs');
+  });
+});
+
+describe('MarkdownCheatsheetModal Component', () => {
+  it('should render cheatsheet modal with tabs, categories, and syntax legends when open', () => {
+    let insertedSnippet = '';
+    const html = renderToString(
+      React.createElement(MarkdownCheatsheetModal, {
+        isOpen: true,
+        onOpenChange: () => {},
+        onInsertSnippet: (snippet: string) => {
+          insertedSnippet = snippet;
+        },
+      })
+    );
+
+    expect(html).toContain('Legenda &amp; Panduan Format Markdown');
+    expect(html).toContain('Tautan &amp; Kontak');
+    expect(html).toContain('Tipografi');
+    expect(html).toContain('Daftar &amp; Tabel');
+    expect(html).toContain('Diagram');
+    expect(html).toContain('Tips Audit');
+    expect(html).toContain('Hyperlink Interaktif');
+    expect(html).toContain('https://linkedin.com/in/rafliiarz');
+    expect(html).toContain('Salin');
+  });
+
+  it('should not render content when isOpen is false', () => {
+    const html = renderToString(
+      React.createElement(MarkdownCheatsheetModal, {
+        isOpen: false,
+        onOpenChange: () => {},
+      })
+    );
+    expect(html).toBe('');
   });
 });

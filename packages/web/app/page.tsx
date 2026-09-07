@@ -21,6 +21,7 @@ import {
   RefreshCw,
   SlidersHorizontal,
   Workflow,
+  BookOpen,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ import {
   CustomTypeModal,
   loadCustomTypesFromStorage,
 } from '@/components/custom-type-modal';
+import { MarkdownCheatsheetModal } from '@/components/markdown-cheatsheet-modal';
 import {
   BUILTIN_DOCUMENT_TYPES,
   listDocumentTypes,
@@ -131,6 +133,7 @@ export default function MarkForgeStudio() {
   const [isSwitchDialogOpen, setIsSwitchDialogOpen] = useState<boolean>(false);
   const [pendingTargetTypeId, setPendingTargetTypeId] = useState<string | null>(null);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState<boolean>(false);
+  const [isCheatsheetOpen, setIsCheatsheetOpen] = useState<boolean>(false);
 
   // ATS / Document Audit Report state
   const [atsReport, setAtsReport] = useState<DocumentAuditResult | any>(null);
@@ -562,6 +565,18 @@ export default function MarkForgeStudio() {
             {isGeneratingPdf ? 'Compiling...' : 'Export PDF'}
           </Button>
 
+          {/* Markdown Format Guide Button */}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 text-xs text-zinc-300 hover:text-white"
+            onClick={() => setIsCheatsheetOpen(true)}
+            title="Buka panduan format Markdown & legenda simbol"
+          >
+            <BookOpen className="mr-1.5 h-3.5 w-3.5 text-emerald-400" />
+            Panduan Sintaks
+          </Button>
+
           {/* MCP Integration Dialog */}
           <Dialog>
             <DialogTrigger asChild>
@@ -626,6 +641,17 @@ export default function MarkForgeStudio() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[11px] text-zinc-400 hover:text-emerald-300"
+                onClick={() => setIsCheatsheetOpen(true)}
+                title="Buka legenda simbol & tata cara Markdown"
+              >
+                <BookOpen className="mr-1 h-3 w-3 text-emerald-400" />
+                Panduan Format
+              </Button>
+              <span className="text-zinc-600">|</span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -957,6 +983,15 @@ export default function MarkForgeStudio() {
         }}
         onSelectType={(newTypeId) => {
           handleDocTypeSelect(newTypeId);
+        }}
+      />
+
+      {/* Markdown Cheatsheet & Legend Modal */}
+      <MarkdownCheatsheetModal
+        isOpen={isCheatsheetOpen}
+        onOpenChange={setIsCheatsheetOpen}
+        onInsertSnippet={(snippet) => {
+          setMarkdown((prev) => prev + '\n\n' + snippet);
         }}
       />
     </div>
