@@ -24,10 +24,10 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install LibreOffice & WeasyPrint
+      - name: Install LibreOffice & Fonts
         run: |
           sudo apt-get update
-          sudo apt-get install -y libreoffice-writer python3-weasyprint fonts-liberation
+          sudo apt-get install -y libreoffice-writer fonts-liberation
 
       - name: Install Dependencies
         run: bun install --frozen-lockfile
