@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rafliiar17/markforge/main/schema/config.schema.json",
+  "name": "MarkForge Default Config",
+  "defaultTemplate": "ats-classic",
+  "defaultFormat": "both",
+  "paperSize": "A4",
+  "engine": "auto",
+  "atsOptimization": {
+    "targetRole": "Fullstack Engineer",
+    "checkQuantifiedMetrics": true,
+    "warnOnGraphics": true
+  },
+  "outputDir": "./output"
+}

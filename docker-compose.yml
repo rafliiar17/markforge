@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  markforge:
+    build: .
+    container_name: markforge-studio
+    ports:
+      - "3030:3030"
+    volumes:
+      - ./output:/app/output
+      - ./examples:/app/examples
+    restart: unless-stopped

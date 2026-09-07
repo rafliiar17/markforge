@@ -1,0 +1,19 @@
+{
+  "name": "@markforge/core",
+  "version": "1.0.0",
+  "description": "Core Markdown to DOCX & PDF conversion engine with ATS optimization and multi-template support",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "docx": "^9.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

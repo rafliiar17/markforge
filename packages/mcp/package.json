@@ -1,0 +1,21 @@
+{
+  "name": "@markforge/mcp",
+  "version": "1.0.0",
+  "description": "Model Context Protocol (MCP) server for MarkForge: Convert markdown to DOCX/PDF and audit documents via AI",
+  "main": "src/index.ts",
+  "bin": {
+    "markforge-mcp": "./bin/mcp.js"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "@markforge/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,33 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install LibreOffice
+        run: sudo apt-get update && sudo apt-get install -y libreoffice-writer
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Run Core Tests
+        run: bun test
+
+      - name: Test CLI Doctor
+        run: bun run packages/cli/src/index.ts doctor
+
+      - name: Test Web Studio Build
+        run: bun run --cwd packages/web build

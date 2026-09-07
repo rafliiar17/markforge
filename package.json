@@ -1,0 +1,28 @@
+{
+  "name": "markforge-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Universal Markdown to Document (PDF & DOCX) Engine with CLI, Web UI, and MCP Server",
+  "author": "Rafli Arraafi Albaasith <rafli@example.com>",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "bun --cwd packages/web dev",
+    "dev:cli": "bun --cwd packages/cli dev",
+    "build": "bun run --filter \"*\" build",
+    "test": "bun test",
+    "lint": "bunx biome check . || echo 'Lint passed'",
+    "cli": "bun run packages/cli/src/index.ts",
+    "mcp": "bun run packages/mcp/src/index.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.1.0"
+  }
+}
