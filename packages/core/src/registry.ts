@@ -32,7 +32,7 @@ class TemplateRegistry {
 
   register(template: TemplateDefinition): void {
     this.templates.set(template.id, template);
-    logger.debug(`Registered template "${template.id}"`, { name: template.name });
+    logger.debug({ name: template.name }, `Registered template "${template.id}"`);
   }
 
   unregister(id: string): boolean {
@@ -62,7 +62,7 @@ class EngineRegistry {
     this.engines.push(engine);
     // Sort descending by priority
     this.engines.sort((a, b) => b.priority - a.priority);
-    logger.debug(`Registered engine "${engine.name}"`, { format: engine.targetFormat, priority: engine.priority });
+    logger.debug({ format: engine.targetFormat, priority: engine.priority }, `Registered engine "${engine.name}"`);
   }
 
   getEnginesForFormat(format: 'pdf' | 'docx' | 'html'): DocumentConverterEngine[] {

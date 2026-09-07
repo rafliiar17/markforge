@@ -8,3 +8,4 @@ export * from './analyzer';
 export * from './logger';
 export * from './telemetry';
 export * from './registry';
+export * from './otel';

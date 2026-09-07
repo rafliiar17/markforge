@@ -13,6 +13,7 @@ import {
   extractASTStats,
   formatServerTiming,
   templateRegistry,
+  withSpan,
 } from '../src';
 
 const SAMPLE_MD = `# Jane Doe
@@ -105,21 +106,22 @@ describe('MarkForge Core', () => {
 });
 
 describe('Logging, Telemetry & Registry', () => {
-  it('should support structured logging with levels and subscribers', () => {
-    let captured: any = null;
-    const unsubscribe = loggerRegistry.subscribe((record) => {
-      captured = record;
+  it('should support Pino structured logger and OpenTelemetry withSpan', async () => {
+    const logger = createLogger('test:pino');
+    expect(logger).toBeDefined();
+    expect(typeof logger.info).toBe('function');
+    expect(typeof logger.debug).toBe('function');
+
+    loggerRegistry.setLevel('debug');
+    expect(loggerRegistry.getLevel()).toBe('debug');
+    loggerRegistry.setLevel('info');
+
+    const result = await withSpan('test.span', { 'test.attr': 'markforge' }, (span) => {
+      expect(span).toBeDefined();
+      return 'otel-success';
     });
 
-    const logger = createLogger('test:logger');
-    logger.info('Test log event', { foo: 'bar' });
-
-    expect(captured).toBeDefined();
-    expect(captured.level).toBe('info');
-    expect(captured.namespace).toBe('test:logger');
-    expect(captured.context.foo).toBe('bar');
-
-    unsubscribe();
+    expect(result).toBe('otel-success');
   });
 
   it('should generate W3C traceId and compute telemetry metrics', () => {

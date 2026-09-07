@@ -1,110 +1,59 @@
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'silent';
+import pino, { Logger, LevelWithSilent } from 'pino';
+import { trace } from '@opentelemetry/api';
 
-const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
-  debug: 0,
-  info: 1,
-  warn: 2,
-  error: 3,
-  silent: 4,
-};
+export type LogLevel = LevelWithSilent;
 
-export interface LogRecord {
-  timestamp: string;
-  level: LogLevel;
-  namespace: string;
-  message: string;
-  context?: Record<string, unknown>;
-}
+// Root Pino logger writing strictly to stderr (protects MCP JSON-RPC stdout integrity)
+const rootLogger: Logger = pino(
+  {
+    level: process.env.LOG_LEVEL?.toLowerCase() || 'info',
+    timestamp: pino.stdTimeFunctions.isoTime,
+    formatters: {
+      level(label) {
+        return { level: label };
+      },
+    },
+    // Automatic OpenTelemetry context injection into every log entry
+    mixin() {
+      const activeSpan = trace.getActiveSpan();
+      if (activeSpan) {
+        const ctx = activeSpan.spanContext();
+        return {
+          trace_id: ctx.traceId,
+          span_id: ctx.spanId,
+          trace_flags: ctx.traceFlags,
+        };
+      }
+      return {};
+    },
+  },
+  typeof process !== 'undefined' && process.stderr ? process.stderr : undefined
+);
 
-export type LogSubscriber = (record: LogRecord) => void;
-
-class LoggerRegistry {
-  private currentLevel: LogLevel = 'info';
-  private subscribers: LogSubscriber[] = [];
-
-  constructor() {
-    const envLevel = typeof process !== 'undefined' ? process.env?.LOG_LEVEL?.toLowerCase() : undefined;
-    if (envLevel && envLevel in LOG_LEVEL_PRIORITY) {
-      this.currentLevel = envLevel as LogLevel;
-    }
-  }
+class LoggerManager {
+  private loggerInstance: Logger = rootLogger;
 
   setLevel(level: LogLevel): void {
-    this.currentLevel = level;
+    this.loggerInstance.level = level;
   }
 
-  getLevel(): LogLevel {
-    return this.currentLevel;
+  getLevel(): string {
+    return this.loggerInstance.level;
   }
 
-  subscribe(subscriber: LogSubscriber): () => void {
-    this.subscribers.push(subscriber);
-    return () => {
-      this.subscribers = this.subscribers.filter((s) => s !== subscriber);
-    };
-  }
-
-  emit(namespace: string, level: LogLevel, message: string, context?: Record<string, unknown>): void {
-    if (LOG_LEVEL_PRIORITY[level] < LOG_LEVEL_PRIORITY[this.currentLevel]) {
-      return;
-    }
-
-    const record: LogRecord = {
-      timestamp: new Date().toISOString(),
-      level,
-      namespace,
-      message,
-      context,
-    };
-
-    // Notify custom subscribers
-    for (const sub of this.subscribers) {
-      try {
-        sub(record);
-      } catch {
-        // Prevent subscriber errors from bubbling
-      }
-    }
-
-    // Default output to stderr (CRITICAL: NEVER write to stdout to avoid breaking MCP JSON-RPC protocol!)
-    if (typeof process !== 'undefined' && process.stderr) {
-      const colorPrefix =
-        level === 'debug'
-          ? '\x1b[90m[DEBUG]\x1b[0m'
-          : level === 'info'
-          ? '\x1b[36m[INFO]\x1b[0m'
-          : level === 'warn'
-          ? '\x1b[33m[WARN]\x1b[0m'
-          : '\x1b[31m[ERROR]\x1b[0m';
-
-      const ctxStr = context && Object.keys(context).length > 0 ? ` ${JSON.stringify(context)}` : '';
-      process.stderr.write(`${colorPrefix} \x1b[2m[${record.namespace}]\x1b[0m ${message}${ctxStr}\n`);
-    }
+  getRoot(): Logger {
+    return this.loggerInstance;
   }
 }
 
-export const loggerRegistry = new LoggerRegistry();
+export const loggerRegistry = new LoggerManager();
 
-export class ScopedLogger {
-  constructor(private namespace: string) {}
-
-  debug(message: string, context?: Record<string, unknown>): void {
-    loggerRegistry.emit(this.namespace, 'debug', message, context);
-  }
-
-  info(message: string, context?: Record<string, unknown>): void {
-    loggerRegistry.emit(this.namespace, 'info', message, context);
-  }
-
-  warn(message: string, context?: Record<string, unknown>): void {
-    loggerRegistry.emit(this.namespace, 'warn', message, context);
-  }
-
-  error(message: string, context?: Record<string, unknown>): void {
-    loggerRegistry.emit(this.namespace, 'error', message, context);
-  }
+/**
+ * Create a child Pino logger scoped to a specific namespace
+ * Automatically includes OpenTelemetry trace_id and span_id when running inside an active span.
+ */
+export function createLogger(namespace: string): Logger {
+  return rootLogger.child({ namespace });
 }
 
-export function createLogger(namespace: string): ScopedLogger {
-  return new ScopedLogger(namespace);
-}
+export { rootLogger };
