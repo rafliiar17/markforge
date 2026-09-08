@@ -1,10 +1,27 @@
-'use client';
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Code2, BookOpen, Workflow, RefreshCw } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import {
+  Code2,
+  BookOpen,
+  Workflow,
+  RefreshCw,
+  ChevronDown,
+  Layers,
+  ShieldCheck,
+  Database,
+  Cpu,
+  Globe,
+  Sparkles,
+} from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import type { DocumentTypeDefinition } from '@markforge/core';
+import {
+  BUILTIN_MERMAID_TEMPLATES,
+  listMermaidTemplates,
+  MermaidArchitectureTemplate,
+} from '@markforge/core';
 
 export interface EditorPaneProps {
   markdown: string;
@@ -31,10 +48,11 @@ export function EditorPane({
 }: EditorPaneProps) {
   const { t } = useI18n();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const [isMermaidMenuOpen, setIsMermaidMenuOpen] = useState(false);
 
   const wordCount = markdown.split(/\s+/).filter(Boolean).length;
 
-  const handleInsertMermaid = () => {
+  const insertDiagramSnippet = (diagramCode: string) => {
     const textarea = textareaRef.current;
     if (!textarea) {
       onInsertMermaid();
@@ -49,7 +67,7 @@ export function EditorPane({
     const prefix = before.length > 0 && !before.endsWith('\n\n') ? (before.endsWith('\n') ? '\n' : '\n\n') : '';
     const suffix = after.length > 0 && !after.startsWith('\n\n') ? (after.startsWith('\n') ? '\n' : '\n\n') : '';
 
-    const snippet = `${prefix}\`\`\`mermaid\ngraph TD\n    A[Mulai Proyek] --> B{Validasi Kebutuhan}\n    B -->|Ya| C[Desain Arsitektur]\n    B -->|Tidak| D[Revisi Spesifikasi]\n    C --> E[Eksekusi & Rilis]\n\`\`\`${suffix}`;
+    const snippet = `${prefix}\`\`\`mermaid\n${diagramCode.trim()}\n\`\`\`${suffix}`;
 
     const newMarkdown = before + snippet + after;
     onMarkdownChange(newMarkdown);
@@ -59,6 +77,16 @@ export function EditorPane({
       const newPos = start + snippet.length;
       textarea.setSelectionRange(newPos, newPos);
     }, 0);
+  };
+
+  const handleInsertMermaid = (templateId: string = 'cloud-microservices') => {
+    const template = BUILTIN_MERMAID_TEMPLATES[templateId];
+    if (template) {
+      insertDiagramSnippet(template.diagram);
+    } else {
+      insertDiagramSnippet(BUILTIN_MERMAID_TEMPLATES['cloud-microservices'].diagram);
+    }
+    setIsMermaidMenuOpen(false);
   };
 
   const getAnalyzeButtonText = () => {
@@ -100,18 +128,72 @@ export function EditorPane({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Mermaid Flow insert button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            data-testid="mermaid-flow-btn"
-            className="h-6 px-2 text-[11px] text-zinc-300 hover:text-emerald-300"
-            onClick={handleInsertMermaid}
-            title="Sisipkan diagram alur Mermaid di posisi kursor"
-          >
-            <Workflow className="mr-1 h-3 w-3 text-emerald-400" />
-            {t('editor.mermaidFlow') || 'Diagram Alur Mermaid'}
-          </Button>
+          {/* Mermaid Architecture Templates Popover Button */}
+          <div className="flex items-center rounded-sm bg-zinc-900 border border-zinc-800/80">
+            <Button
+              variant="ghost"
+              size="sm"
+              data-testid="mermaid-flow-btn"
+              className="h-6 px-2 text-[11px] text-zinc-300 hover:text-emerald-300 hover:bg-zinc-800"
+              onClick={() => handleInsertMermaid('cloud-microservices')}
+              title="Sisipkan diagram arsitektur Cloud Microservices (klik panah untuk pilihan templat lainnya)"
+            >
+              <Workflow className="mr-1 h-3 w-3 text-emerald-400" />
+              {t('editor.mermaidFlow') || 'Diagram Mermaid'}
+            </Button>
+
+            <Popover open={isMermaidMenuOpen} onOpenChange={setIsMermaidMenuOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  data-testid="mermaid-templates-dropdown"
+                  className="h-6 w-5 p-0 text-zinc-400 hover:text-emerald-300 hover:bg-zinc-800 border-l border-zinc-800"
+                  title="Pilih templat arsitektur produksi"
+                >
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                className="w-84 max-h-[380px] overflow-y-auto p-2 bg-zinc-950 border border-zinc-800 text-zinc-100 shadow-2xl rounded-lg"
+              >
+                <div className="px-2 py-1.5 border-b border-zinc-800/80 mb-1">
+                  <div className="flex items-center gap-1.5 font-medium text-xs text-emerald-400">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>{t('editor.mermaidTemplatesTitle') || 'Templat Arsitektur Produksi'}</span>
+                  </div>
+                  <p className="text-[10.5px] text-zinc-400 mt-0.5">
+                    {t('editor.mermaidTemplatesDesc') || 'Pilih pola sistem production-grade untuk disisipkan ke dokumen:'}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  {listMermaidTemplates().map((tmpl) => (
+                    <button
+                      key={tmpl.id}
+                      type="button"
+                      data-testid={`mermaid-tmpl-${tmpl.id}`}
+                      onClick={() => handleInsertMermaid(tmpl.id)}
+                      className="w-full text-left p-2 rounded-md hover:bg-zinc-900 transition-colors border border-transparent hover:border-zinc-800 group"
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-medium text-xs text-zinc-200 group-hover:text-emerald-300">
+                          {tmpl.name}
+                        </span>
+                        <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-zinc-700 text-zinc-400">
+                          {tmpl.category}
+                        </Badge>
+                      </div>
+                      <p className="text-[10px] text-zinc-400 line-clamp-2 mt-0.5 leading-snug">
+                        {tmpl.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
           <span className="text-zinc-700">|</span>
 
           {/* Dynamic Analyze button with direct tab switch */}

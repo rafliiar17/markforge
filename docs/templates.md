@@ -84,3 +84,36 @@ graph TD
 - **Web Studio Canvas**: Client-side SVG generation via `mermaid.js` with instant dark/light theme coordination.
 - **PDF Export**: Headless browser or LibreOffice renders embedded SVG directly into vector curves without pixelation.
 - **DOCX Export**: Converted into styled monospace syntax blocks with diagram headers to ensure universal OpenXML reader compatibility.
+
+---
+
+## 5. Production Architecture Mermaid Templates
+
+MarkForge includes a curated catalog of enterprise-grade, battle-tested Mermaid architecture patterns under `@markforge/core`. These templates feature modular subgraphs, protocol edge annotations, and clear data/tier isolation:
+
+| Template ID | Name | Category | Key Architectural Components |
+|---|---|---|---|
+| `cloud-microservices` | Cloud Microservices & Zero-Trust Ingress | Cloud Infrastructure | Cloudflare Edge CDN/WAF, Envoy API Gateway, JWT verification, core microservices mesh, Kafka event broker, PostgreSQL HA cluster, Redis cache, OpenTelemetry collector. |
+| `event-driven-cqrs` | Event-Driven CQRS & Real-Time Ingestion | Event-Driven | Partitioned Kafka buffer, stream workers, append-only event store, Dead Letter Queue (DLQ), read model projector, and Elasticsearch search index. |
+| `hexagonal-architecture` | Clean Hexagonal Architecture (Ports & Adapters) | Software Design | Domain-Driven Design (DDD) with Driving Adapters (REST/CLI/GraphQL), Application Core Use Cases, Domain Entities & Aggregates, and Driven Ports (Repository, Storage, Email). |
+| `zero-trust-security` | Zero-Trust Security & Identity Mesh | Security | Identity Provider (OIDC/SAML), Policy Enforcement Point (PEP), Open Policy Agent (OPA) engine, SPIFFE/SPIRE workload mTLS mesh, and immutable SIEM audit logs. |
+| `multi-region-resilience` | Multi-Region High-Availability & Disaster Recovery | Resilience | Anycast Geo-DNS, active Kubernetes cluster in primary region, warm standby secondary region, and cross-region asynchronous database WAL replication. |
+| `standard-flowchart` | Production Lifecycle & Decision Logic | Workflow | Standard production engineering lifecycle with AST validation checkpoints, error recovery branches, and format rendering. |
+
+### 5.1. Using Templates in Web Studio
+1. In the Web Studio editor toolbar, click the **Diagram Mermaid** button or the adjacent dropdown chevron.
+2. Select any production architecture pattern from the menu to insert the complete, pre-styled diagram into your Markdown document at the cursor position.
+3. Alternatively, open the **Panduan Sintaks (Syntax Guide)** modal (`MarkdownCheatsheetModal`), switch to the **Mermaid** tab, and click **"Sisipkan ke Editor"** or **"Salin"**.
+
+### 5.2. Programmatic API (`@markforge/core`)
+```typescript
+import { listMermaidTemplates, getMermaidTemplate } from '@markforge/core';
+
+// List all 6 production architecture templates
+const templates = listMermaidTemplates();
+
+// Get specific template by ID
+const cloudTemplate = getMermaidTemplate('cloud-microservices');
+console.log(cloudTemplate.diagram);
+```
+

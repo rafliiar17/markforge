@@ -170,7 +170,8 @@ describe('MarkForge Web Studio E2E via Bun.WebView', () => {
     expect(diagramCheck.hasMermaidInCanvas).toBe(true);
     expect(diagramCheck.hasSvg).toBe(true);
     expect(diagramCheck.isRendered).toBe(true);
-    expect(diagramCheck.svgContent).toContain('Mulai Proyek');
+    expect(diagramCheck.svgContent).toMatch(/Cloudflare|Ingress|Mulai/);
+
 
     // Capture screenshot via webview.screenshot() and write to output/mermaid-studio-preview.png
     const blob = await webview.screenshot();
