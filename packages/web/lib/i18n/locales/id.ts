@@ -54,6 +54,8 @@ export const idTranslations: TranslationSchema = {
     analyzing: 'Menganalisis...',
     wordsCount: '{count} kata',
     placeholder: 'Ketik atau tempel dokumen markdown Anda di sini...',
+    mermaidTemplatesTitle: 'Templat Arsitektur Produksi',
+    mermaidTemplatesDesc: 'Pilih pola sistem production-grade untuk disisipkan ke dokumen:',
   },
   tabs: {
     documentPreview: 'Pratinjau Dokumen',

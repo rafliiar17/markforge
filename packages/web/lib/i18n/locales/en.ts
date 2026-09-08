@@ -54,6 +54,8 @@ export const enTranslations: TranslationSchema = {
     analyzing: 'Analyzing...',
     wordsCount: '{count} words',
     placeholder: 'Paste or write your markdown document here...',
+    mermaidTemplatesTitle: 'Production Architecture Templates',
+    mermaidTemplatesDesc: 'Select a production-grade system pattern to insert into your document:',
   },
   tabs: {
     documentPreview: 'Document Preview',

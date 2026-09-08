@@ -162,3 +162,19 @@ export interface SystemEngineCheck {
   node: boolean;
   bun: boolean;
 }
+
+export interface MermaidArchitectureTemplate {
+  id: string;
+  name: string;
+  category:
+    | 'cloud-infrastructure'
+    | 'event-driven'
+    | 'software-design'
+    | 'security'
+    | 'resilience'
+    | 'workflow';
+  description: string;
+  tags: string[];
+  diagram: string;
+}
+

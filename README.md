@@ -123,6 +123,17 @@ Writing documents in Markdown is frictionless, but converting them into corporat
 | `academic` | Times New Roman | Slate | Research Proposals, Theses | ⭐️⭐️⭐️⭐️ (90%) |
 | `executive` | Garamond | Bronze | Senior Leadership Biographies | ⭐️⭐️⭐️⭐️ (92%) |
 
+### 📐 Production Mermaid Architecture Templates
+MarkForge natively renders enterprise-grade Mermaid diagrams with automatic template-synchronized palette theming, live SVG generation, and clean fallback warnings:
+- **Cloud Microservices & Zero-Trust Ingress** (`cloud-microservices`): Cloudflare CDN/WAF, Envoy Gateway, JWT verification, microservices mesh, Kafka, PostgreSQL HA, Redis, OTel tracing.
+- **Event-Driven CQRS & Real-Time Ingestion** (`event-driven-cqrs`): Partitioned Kafka buffer, stream workers, append-only event store, resilient Dead Letter Queue (DLQ), and query projection search views.
+- **Clean Hexagonal Architecture** (`hexagonal-architecture`): Domain-Driven Design (DDD) with Driving Adapters, Application Use Cases, Core Domain, and Driven Infrastructure Ports.
+- **Zero-Trust Enterprise Security** (`zero-trust-security`): IdP auth, Edge Policy Enforcement Points (PEP), Open Policy Agent (OPA) engine, SPIFFE mTLS workload mesh, and immutable WORM audit trails.
+- **Multi-Region High-Availability & Disaster Recovery** (`multi-region-resilience`): Anycast Geo-DNS, active Kubernetes compute pods, warm standby region, and cross-region asynchronous database WAL replication.
+- **Production Lifecycle & Decision Logic** (`standard-flowchart`): Standard production engineering workflow with AST validation checkpoints and error recovery paths.
+
+> 📖 *For complete template catalogs, read [Templates & Architecture Guide](docs/templates.md).*
+
 ---
 
 ## 🚀 Quickstart

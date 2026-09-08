@@ -11,7 +11,8 @@ import {
   escapeHtml,
 } from '../components/document-preview';
 import { StudioHeader } from '../components/studio/studio-header';
-import { BUILTIN_DOCUMENT_TYPES } from '@markforge/core';
+import { BUILTIN_DOCUMENT_TYPES, listMermaidTemplates } from '@markforge/core';
+
 
 describe('DocumentPreview & DocumentPreviewSkeleton', () => {
   it('should render DocumentPreviewSkeleton with high-fidelity shimmer elements', () => {
@@ -116,6 +117,18 @@ describe('DocumentPreview & DocumentPreviewSkeleton', () => {
     const emptyResult = await validateMermaidSyntax('');
     expect(emptyResult.valid).toBe(false);
   });
+
+  it('should validate all built-in production architecture Mermaid templates without syntax errors', async () => {
+    const templates = listMermaidTemplates();
+    expect(templates.length).toBeGreaterThanOrEqual(6);
+
+    for (const tmpl of templates) {
+      const result = await validateMermaidSyntax(tmpl.diagram);
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    }
+  });
+
 
   it('should generate graceful syntax warning HTML when typing incomplete diagram', () => {
     const rawSource = 'graph TD\n  A -->';

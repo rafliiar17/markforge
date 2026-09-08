@@ -139,13 +139,36 @@ The ingestion pipeline decouples HTTP producers from durable storage via distrib
 
 \`\`\`mermaid
 graph TD
-  Client[Client Applications / SDKs] -->|HTTPS / gRPC| LB[Global Load Balancer]
-  LB --> Ingest[Ingestion Gateway Nodes]
-  Ingest -->|Batch Publish| Queue[Distributed Log Broker / Kafka]
-  Queue --> Worker[Stream Processing Workers]
-  Worker --> Cache[(Hot Cache / Redis)]
-  Worker --> Storage[(Columnar Warehouse / ClickHouse)]
-  Worker --> DLQ[(Dead Letter Queue)]
+  subgraph Ingress ["🌐 Edge & Security Ingress Layer"]
+    Client([💻 Web & Mobile Clients]) -->|HTTPS / TLS 1.3| CDN[Cloudflare CDN & WAF]
+    CDN -->|DDoS Shielded Traffic| ALB{{Global Application Load Balancer}}
+  end
+
+  subgraph Gateway ["🛡️ API Gateway & Security Boundary"]
+    ALB -->|mTLS Ingress| APIGW[/Envoy / Kong API Gateway/]
+    APIGW -->|Verify JWT & OIDC| AuthSvc[🔐 Identity & Access Service]
+    APIGW -->|Rate Limit Token Bucket| RateLimit[⏱️ Distributed Rate Limiter]
+  end
+
+  subgraph Services ["⚡ Core Microservices Mesh"]
+    RateLimit -->|Forward Validated| OrderSvc[📦 Order & Checkout Service]
+    RateLimit -->|Forward Validated| CatalogSvc[🔍 Catalog & Search Service]
+    OrderSvc -->|Publish Domain Events| EventBus([📨 Apache Kafka Event Broker])
+  end
+
+  subgraph DataTier ["💾 Persistence & Cache Tier"]
+    OrderSvc -->|Read / Write| OrderDB[(🐘 PostgreSQL Primary - WAL Sync)]
+    OrderDB -.->|Async Replication| ReadReplica[(🐘 PostgreSQL Read Replica)]
+    CatalogSvc -->|Hot Cache Queries| RedisCache[(⚡ Redis In-Memory Cluster)]
+    CatalogSvc -->|Read Queries| CatalogDB[(🐘 Catalog DB)]
+  end
+
+  subgraph Telemetry ["📊 Observability & Auditing"]
+    OrderSvc -.->|OTel Spans & Metrics| Collector[🔭 OpenTelemetry Collector]
+    CatalogSvc -.->|OTel Spans & Metrics| Collector
+    Collector --> Prometheus[(📈 Prometheus Metrics & Grafana)]
+    Collector --> Jaeger[(🕸️ Jaeger Traces)]
+  end
 \`\`\`
 
 ### Ingestion Gateway Lifecycle

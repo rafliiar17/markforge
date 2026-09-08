@@ -293,6 +293,35 @@ export async function validateMermaidSyntax(
     return { valid: false, error: 'Empty diagram definition' };
   }
   try {
+    // Ensure minimal DOM environment exists for DOMPurify when called in SSR / test runner
+    if (typeof window === 'undefined' || !(globalThis as any).window?.Element) {
+      class MockElement {
+        setAttribute() {}
+        getAttribute() {
+          return null;
+        }
+        removeAttribute() {}
+      }
+      (globalThis as any).window = {
+        document: {
+          nodeType: 9,
+          createElement: () => new MockElement(),
+          createElementNS: () => new MockElement(),
+          createDocumentFragment: () => ({ childNodes: [] }),
+          getElementsByTagName: () => [],
+          querySelectorAll: () => [],
+          getElementById: () => null,
+        },
+        Element: MockElement,
+        Node: { ELEMENT_NODE: 1, TEXT_NODE: 3, DOCUMENT_NODE: 9 },
+        HTMLTemplateElement: class MockTemplate extends MockElement {},
+        DOMParser: class MockParser {
+          parseFromString() {
+            return { body: { childNodes: [] } };
+          }
+        },
+      };
+    }
     const mermaidModule = await import('mermaid');
     const mermaid = mermaidModule.default;
     await mermaid.parse(source.trim());

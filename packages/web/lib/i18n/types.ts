@@ -83,6 +83,8 @@ export interface TranslationSchema {
     analyzing: string;
     wordsCount: string;
     placeholder: string;
+    mermaidTemplatesTitle?: string;
+    mermaidTemplatesDesc?: string;
   };
   tabs: {
     documentPreview: string;

@@ -21,6 +21,8 @@ import {
   Check,
   BookOpen,
 } from 'lucide-react';
+import { BUILTIN_MERMAID_TEMPLATES } from '@markforge/core';
+
 
 interface MarkdownCheatsheetModalProps {
   isOpen: boolean;
@@ -155,24 +157,61 @@ export function MarkdownCheatsheetModal({
 
   const mermaidItems: CheatsheetItem[] = [
     {
-      name: 'Flowchart Alur Sistem (graph TD / LR)',
+      name: 'Cloud Microservices & Zero-Trust Ingress (Production Architecture)',
       syntax: `\`\`\`mermaid
-graph TD
-  A[Client Request] --> B[API Gateway]
-  B --> C[Auth Middleware]
-  C --> D[(PostgreSQL)]
-  C --> E[(Redis Cache)]
+${BUILTIN_MERMAID_TEMPLATES['cloud-microservices'].diagram}
 \`\`\``,
-      description: 'Diagram alur visual. "graph TD" untuk atas-ke-bawah (Top-Down), atau "graph LR" untuk kiri-ke-kanan (Left-Right).',
-      previewNote: 'Dirender jadi SVG interaktif di Web Studio, callout terbingkai di Word DOCX, dan vektor tajam di PDF.',
-      badge: 'Tech Spec',
+      description:
+        'Arsitektur cloud production-grade lengkap dengan Edge WAF, API Gateway, JWT verification, microservices mesh, Kafka event broker, PostgreSQL HA cluster, Redis cache, dan OpenTelemetry tracing.',
+      previewNote: 'Struktur multi-tier dengan subgraph terisolasi, protokol mTLS, dan visualisasi layer data.',
+      badge: 'Production Cloud',
     },
     {
-      name: 'Diagram Sekuensial (sequenceDiagram)',
+      name: 'Event-Driven CQRS & Real-Time Ingestion (Streaming Architecture)',
+      syntax: `\`\`\`mermaid
+${BUILTIN_MERMAID_TEMPLATES['event-driven-cqrs'].diagram}
+\`\`\``,
+      description:
+        'Pemisahan command write dan query read menggunakan Kafka partitioned topics, stream workers, append-only event store, Dead Letter Queue (DLQ), dan Elasticsearch projection view.',
+      previewNote: 'Arsitektur streaming asynchronous dengan toleransi error DLQ.',
+      badge: 'CQRS & Kafka',
+    },
+    {
+      name: 'Clean Hexagonal Architecture (Ports & Adapters / DDD)',
+      syntax: `\`\`\`mermaid
+${BUILTIN_MERMAID_TEMPLATES['hexagonal-architecture'].diagram}
+\`\`\``,
+      description:
+        'Domain-Driven Design yang memisahkan logika bisnis inti (Domain & Use Cases) dari adapter eksternal (REST/CLI) dan driver infrastruktur (PostgreSQL, Cloudflare R2, Email) via interface port.',
+      previewNote: 'Pola standar enterprise untuk sistem modular dan highly-testable.',
+      badge: 'Clean Architecture',
+    },
+    {
+      name: 'Zero-Trust Enterprise Security & Identity Mesh',
+      syntax: `\`\`\`mermaid
+${BUILTIN_MERMAID_TEMPLATES['zero-trust-security'].diagram}
+\`\`\``,
+      description:
+        'Topologi keamanan zero-trust dengan Policy Enforcement Points (PEP), evaluasi OPA dinamis, workload SPIFFE/SPIRE mTLS mesh, dan audit logging WORM.',
+      previewNote: 'Diagram standar untuk audit kepatuhan ISO 27001 / SOC2.',
+      badge: 'Security & Auth',
+    },
+    {
+      name: 'Multi-Region High-Availability & Disaster Recovery (HA & DR)',
+      syntax: `\`\`\`mermaid
+${BUILTIN_MERMAID_TEMPLATES['multi-region-resilience'].diagram}
+\`\`\``,
+      description:
+        'Pola multi-region cloud deployment dengan geo-anycast DNS steering, compute pod aktif-standby, dan replikasi asynchronous database lintas region.',
+      previewNote: 'Dokumentasi ketahanan sistem (99.999% SLA) dan mitigasi bencana.',
+      badge: 'High Availability',
+    },
+    {
+      name: 'Diagram Sekuensial Interaksi Layanan (sequenceDiagram)',
       syntax: `\`\`\`mermaid
 sequenceDiagram
   autonumber
-  actor User as Pengguna
+  actor User as Pengguna / Klien
   participant Web as MarkForge Studio
   participant Core as Compiler Engine
   User->>Web: Input Markdown & Klik Export
@@ -182,7 +221,7 @@ sequenceDiagram
 \`\`\``,
       description: 'Diagram urutan pesan antar layanan atau aktor sistem.',
       previewNote: 'Sangat ideal untuk Tech Spec, RFC, dan dokumentasi arsitektur.',
-      badge: 'Architecture',
+      badge: 'Sequence',
     },
   ];
 
